@@ -14,6 +14,8 @@ enum Command {
     Interest(Interest),
     /// Calculates compound interest
     CompoundInterest(CompoundInterest),
+    PresentValue(PresentValue),
+    FutureValue(FutureValue),
 }
 
 #[derive(Parser, Debug)]
@@ -50,6 +52,26 @@ struct CompoundInterest {
     t: i32,
 }
 
+#[derive(Parser, Debug)]
+struct PresentValue {
+    #[clap(short, long)]
+    future_value: f64,
+    #[clap(short, long)]
+    rate: f64,
+    #[clap(short, long)]
+    time: f64,
+}
+
+#[derive(Parser, Debug)]
+struct FutureValue {
+    #[clap(short, long)]
+    present_value: f64,
+    #[clap(short, long)]
+    rate: f64,
+    #[clap(short, long)]
+    time: f64,
+}
+
 fn main() {
     let opts: Opts = Opts::parse();
 
@@ -67,5 +89,21 @@ fn main() {
                 println!("Year {}: {}", year, amount);
             }
         }
+        Command::PresentValue(args) => {
+            let result = calculate_present_value(args.future_value, args.rate, args.time);
+            println!("The present value is: {}", result);
+        }
+        Command::FutureValue(args) => {
+            let result = calculate_future_value(args.present_value, args.rate, args.time);
+            println!("The future value is: {}", result);
+        }
     }
+}
+
+fn calculate_present_value(future_value: f64, rate: f64, time: f64) -> f64 {
+    future_value / (1.0 + rate).powf(time)
+}
+
+fn calculate_future_value(present_value: f64, rate: f64, time: f64) -> f64 {
+    present_value * (1.0 + rate).powf(time)
 }
