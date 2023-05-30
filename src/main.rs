@@ -16,6 +16,8 @@ enum Command {
     CompoundInterest(CompoundInterest),
     PresentValue(PresentValue),
     FutureValue(FutureValue),
+    /// Calculates net present value
+    NPV(NPV),
 }
 
 #[derive(Parser, Debug)]
@@ -72,6 +74,25 @@ struct FutureValue {
     time: f64,
 }
 
+#[derive(Parser, Debug)]
+struct NPV {
+    /// The initial investment or cost
+    #[clap(short, long)]
+    initial_investment: f64,
+
+    /// The annual cash inflow
+    #[clap(short, long)]
+    cash_inflow: f64,
+
+    /// The discount rate
+    #[clap(short, long)]
+    discount_rate: f64,
+
+    /// The lifespan of the investment in years
+    #[clap(short, long)]
+    lifespan: i32,
+}
+
 fn main() {
     let opts: Opts = Opts::parse();
 
@@ -97,6 +118,17 @@ fn main() {
             let result = calculate_future_value(args.present_value, args.rate, args.time);
             println!("The future value is: {}", result);
         }
+        Command::NPV(npv) => {
+            let NPV {
+                initial_investment,
+                cash_inflow,
+                discount_rate,
+                lifespan,
+            } = npv;
+    
+            let npv = calculate_npv(initial_investment, cash_inflow, discount_rate, lifespan);
+            println!("The net present value is: {}", npv);
+        }
     }
 }
 
@@ -106,4 +138,12 @@ fn calculate_present_value(future_value: f64, rate: f64, time: f64) -> f64 {
 
 fn calculate_future_value(present_value: f64, rate: f64, time: f64) -> f64 {
     present_value * (1.0 + rate).powf(time)
+}
+
+fn calculate_npv(initial_investment: f64, cash_inflow: f64, discount_rate: f64, lifespan: i32) -> f64 {
+    let mut npv = -initial_investment;
+    for i in 1..=lifespan {
+        npv += cash_inflow / (1.0 + discount_rate).powf(i as f64);
+    }
+    npv
 }
