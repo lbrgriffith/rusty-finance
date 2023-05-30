@@ -140,10 +140,23 @@ fn main() {
         Command::CompoundInterest(compound_interest) => {
             let CompoundInterest { principal, rate, n, t } = compound_interest;
             let mut amount = principal;
+
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Year"),
+                Cell::new("Amount"),
+            ]));
+
             for year in 1..=t {
                 amount *= 1.0 + (rate / n as f64);
-                println!("Year {}: {}", year, amount);
+                table.add_row(Row::new(vec![
+                    Cell::new(&year.to_string()),
+                    Cell::new(&amount.to_string()),
+                ]));
             }
+
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
         }
         Command::PresentValue(args) => {
             let result = calculate_present_value(args.future_value, args.rate, args.time);
