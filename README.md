@@ -47,6 +47,20 @@ Where:
 **<compounds_per_year>** is the number of times that interest is compounded per year.
 **<years>** is the time that the money is invested for, in years.
 
+## Present Value
+```bash
+./finance_calculator present-value --future-value <FUTURE_VALUE> --rate <RATE> --time <TIME>
+```
+## Future Value
+```bash
+./finance_calculator future-value --present-value <PRESENT_VALUE> --rate <RATE> --time <TIME>
+```
+## Net Present Value
+```bash
+./finance_calculator npv --initial-investment <INITIAL_INVESTMENT> --cash-inflow <ANNUAL_CASH_INFLOW> --discount-rate <DISCOUNT_RATE> --lifespan <LIFESPAN>
+```
+For the NPV calculation, `initial_investment` is the initial cost of the project or investment, `cash_inflow` is the annual cash inflow, `discount_rate` is the rate used to discount future cash inflows, and `lifespan` is the total lifespan of the investment in years.
+
 ## Examples
 ### Simple Interest
 For instance, to calculate the simple interest on a principal of 1000 with an interest rate of 5% per period for 1 period, you would run:
