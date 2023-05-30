@@ -179,8 +179,23 @@ fn main() {
         }        
         Command::FutureValue(args) => {
             let result = calculate_future_value(args.present_value, args.rate, args.time);
-            println!("The future value is: {}", result);
-        }
+        
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Present Value"),
+                Cell::new("Rate"),
+                Cell::new("Time"),
+                Cell::new("Future Value"),
+            ]));
+            table.add_row(Row::new(vec![
+                Cell::new(&args.present_value.to_string()),
+                Cell::new(&args.rate.to_string()),
+                Cell::new(&args.time.to_string()),
+                Cell::new(&result.to_string()),
+            ]));
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }        
         Command::NPV(npv) => {
             let NPV { initial_investment, cash_inflow, discount_rate, lifespan } = npv;
             let mut npv_value = -initial_investment;
