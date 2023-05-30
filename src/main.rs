@@ -97,18 +97,19 @@ struct NPV {
 
 #[derive(Parser, Debug)]
 struct Amortization {
-    /// The total loan amount
-    #[clap(short, long)]
+    /// The initial loan amount
+    #[clap(short = 'a', long)]
     loan_amount: f64,
 
     /// The annual interest rate
-    #[clap(short, long)]
+    #[clap(short = 'i', long)]
     annual_interest_rate: f64,
 
     /// The loan term in years
-    #[clap(short, long)]
+    #[clap(short = 't', long)]
     loan_term_years: i32,
 }
+
 
 
 fn main() {
