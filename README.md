@@ -36,18 +36,43 @@ Where:
 `<rate>` is the rate of interest per time period. This is a decimal, so a rate of 5% would be input as 0.05.
 `<time>` is the time that the money is invested for.
 
-## Example
-For instance, to calculate the simple interest on a principal of 1000 with an interest rate of 5% per period for 1 period, you would run:
+## Compound Interest
+```bash
+cargo run -- compound-interest --principal <principal> --rate <rate> --n <compounds_per_year> --t <years>
+```
+Where:
 
+**<principal>** is the initial amount of money that you have or plan to invest.
+**<rate>** is the annual interest rate. This is a decimal, so a rate of 5% would be input as 0.05.
+**<compounds_per_year>** is the number of times that interest is compounded per year.
+**<years>** is the time that the money is invested for, in years.
+
+## Examples
+### Simple Interest
+For instance, to calculate the simple interest on a principal of 1000 with an interest rate of 5% per period for 1 period, you would run:
 ```bash
 cargo run -- interest --principal 1000 --rate 0.05 --time 1
 ```
 The output will be:
-
 ```bash
 The simple interest is: 50
+```
+## Compound Interest
+For instance, to calculate the compound interest on a principal of 1000 with an annual interest rate of 5%, compounded quarterly, over 5 years, you would run:
+```bash
+cargo run -- compound-interest --principal 1000 --rate 0.05 --n 4 --t 5
+```
+The output will be something like:
+```ymal
+Year 1: 1050
+Year 2: 1102.5
+Year 3: 1157.625
+Year 4: 1215.50625
+Year 5: 1276.2815625
 ```
 ## Contributing
 We welcome contributions to this project! If you find a bug or think of a new feature, please open an issue. If you're able to implement it yourself, we would appreciate a pull request.
 
-
+```
+Please replace "YourGithubUsername" with your actual GitHub username.
+```
