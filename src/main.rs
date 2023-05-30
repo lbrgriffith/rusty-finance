@@ -18,6 +18,8 @@ enum Command {
     FutureValue(FutureValue),
     /// Calculates net present value
     NPV(NPV),
+    /// Calculates an amortization schedule
+    Amortization(Amortization),
 }
 
 #[derive(Parser, Debug)]
@@ -93,6 +95,22 @@ struct NPV {
     lifespan: i32,
 }
 
+#[derive(Parser, Debug)]
+struct Amortization {
+    /// The total loan amount
+    #[clap(short, long)]
+    loan_amount: f64,
+
+    /// The annual interest rate
+    #[clap(short, long)]
+    annual_interest_rate: f64,
+
+    /// The loan term in years
+    #[clap(short, long)]
+    loan_term_years: i32,
+}
+
+
 fn main() {
     let opts: Opts = Opts::parse();
 
@@ -129,6 +147,9 @@ fn main() {
             let npv = calculate_npv(initial_investment, cash_inflow, discount_rate, lifespan);
             println!("The net present value is: {}", npv);
         }
+        Command::Amortization(args) => {
+            calculate_amortization_schedule(args.loan_amount, args.annual_interest_rate, args.loan_term_years);
+        }
     }
 }
 
@@ -146,4 +167,19 @@ fn calculate_npv(initial_investment: f64, cash_inflow: f64, discount_rate: f64, 
         npv += cash_inflow / (1.0 + discount_rate).powf(i as f64);
     }
     npv
+}
+
+fn calculate_amortization_schedule(mut loan_amount: f64, annual_interest_rate: f64, loan_term_years: i32) {
+    let monthly_interest_rate = annual_interest_rate / 12.0;
+    let total_number_of_payments = loan_term_years * 12;
+
+    let monthly_payment = (monthly_interest_rate * loan_amount) / (1.0 - (1.0 + monthly_interest_rate).powf(-total_number_of_payments as f64));
+
+    for month in 1..=total_number_of_payments {
+        let interest_payment = monthly_interest_rate * loan_amount;
+        let principal_payment = monthly_payment - interest_payment;
+        loan_amount -= principal_payment;
+
+        println!("Month: {}, Principal: {}, Interest: {}, Remaining Balance: {}", month, principal_payment, interest_payment, loan_amount);
+    }
 }
