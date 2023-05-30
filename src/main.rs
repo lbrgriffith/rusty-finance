@@ -160,8 +160,23 @@ fn main() {
         }
         Command::PresentValue(args) => {
             let result = calculate_present_value(args.future_value, args.rate, args.time);
-            println!("The present value is: {}", result);
-        }
+        
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Future Value"),
+                Cell::new("Rate"),
+                Cell::new("Time"),
+                Cell::new("Present Value"),
+            ]));
+            table.add_row(Row::new(vec![
+                Cell::new(&args.future_value.to_string()),
+                Cell::new(&args.rate.to_string()),
+                Cell::new(&args.time.to_string()),
+                Cell::new(&result.to_string()),
+            ]));
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }        
         Command::FutureValue(args) => {
             let result = calculate_future_value(args.present_value, args.rate, args.time);
             println!("The future value is: {}", result);
