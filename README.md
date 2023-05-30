@@ -1,4 +1,5 @@
-# CLI Financial Tool
+# Rusty Finance CLI
+_CLI Financial Command-line Tool_
 
 ![Rust](https://img.shields.io/badge/Rust-Programming%20Language-orange?logo=rust)
 
