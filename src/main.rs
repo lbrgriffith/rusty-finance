@@ -1,4 +1,5 @@
 use clap::Parser;
+use prettytable::{Table, Row, Cell, format};
 
 /// Financial calculation tool
 #[derive(Parser, Debug)]
@@ -119,7 +120,22 @@ fn main() {
         Command::Interest(interest) => {
             let Interest { principal, rate, time } = interest;
             let result = principal * rate * time;
-            println!("The simple interest is: {}", result);
+
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Principal"),
+                Cell::new("Rate"),
+                Cell::new("Time"),
+                Cell::new("Simple Interest"),
+            ]));
+            table.add_row(Row::new(vec![
+                Cell::new(&principal.to_string()),
+                Cell::new(&rate.to_string()),
+                Cell::new(&time.to_string()),
+                Cell::new(&result.to_string()),
+            ]));
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
         }
         Command::CompoundInterest(compound_interest) => {
             let CompoundInterest { principal, rate, n, t } = compound_interest;

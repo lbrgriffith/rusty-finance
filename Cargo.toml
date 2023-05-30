@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 #clap = "4.3.0"
 clap = { version = "4.3.0", features = ["derive"] }
+prettytable-rs = "0.10.0"
