@@ -80,19 +80,19 @@ struct FutureValue {
 #[derive(Parser, Debug)]
 struct NPV {
     /// The initial investment or cost
-    #[clap(short, long)]
+    #[clap(short, long, name = "initial-investment")]
     initial_investment: f64,
 
     /// The annual cash inflow
-    #[clap(short, long)]
+    #[clap(short, long, name = "cash-inflow")]
     cash_inflow: f64,
 
     /// The discount rate
-    #[clap(short, long)]
+    #[clap(short, long, name = "discount-rate")]
     discount_rate: f64,
 
     /// The lifespan of the investment in years
-    #[clap(short, long)]
+    #[clap(short, long, name = "lifespan")]
     lifespan: i32,
 }
 
@@ -167,15 +167,31 @@ fn main() {
             println!("The future value is: {}", result);
         }
         Command::NPV(npv) => {
-            let NPV {
-                initial_investment,
-                cash_inflow,
-                discount_rate,
-                lifespan,
-            } = npv;
-    
-            let npv = calculate_npv(initial_investment, cash_inflow, discount_rate, lifespan);
-            println!("The net present value is: {}", npv);
+            let NPV { initial_investment, cash_inflow, discount_rate, lifespan } = npv;
+            let mut npv_value = -initial_investment;
+        
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Year"),
+                Cell::new("Cash Inflow"),
+                Cell::new("Discounted Cash Flow"),
+            ]));
+        
+            for year in 1..=lifespan {
+                let discounted_cash_flow = cash_inflow / (1.0 + discount_rate).powf(year as f64);
+                npv_value += discounted_cash_flow;
+        
+                table.add_row(Row::new(vec![
+                    Cell::new(&year.to_string()),
+                    Cell::new(&cash_inflow.to_string()),
+                    Cell::new(&discounted_cash_flow.to_string()),
+                ]));
+            }
+        
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        
+            println!("Net Present Value (NPV): {}", npv_value);
         }
         Command::Amortization(args) => {
             calculate_amortization_schedule(args.loan_amount, args.annual_interest_rate, args.loan_term_years);
@@ -189,14 +205,6 @@ fn calculate_present_value(future_value: f64, rate: f64, time: f64) -> f64 {
 
 fn calculate_future_value(present_value: f64, rate: f64, time: f64) -> f64 {
     present_value * (1.0 + rate).powf(time)
-}
-
-fn calculate_npv(initial_investment: f64, cash_inflow: f64, discount_rate: f64, lifespan: i32) -> f64 {
-    let mut npv = -initial_investment;
-    for i in 1..=lifespan {
-        npv += cash_inflow / (1.0 + discount_rate).powf(i as f64);
-    }
-    npv
 }
 
 fn calculate_amortization_schedule(mut loan_amount: f64, annual_interest_rate: f64, loan_term_years: i32) {
