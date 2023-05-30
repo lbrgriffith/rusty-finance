@@ -61,6 +61,20 @@ Where:
 ```
 For the NPV calculation, `initial_investment` is the initial cost of the project or investment, `cash_inflow` is the annual cash inflow, `discount_rate` is the rate used to discount future cash inflows, and `lifespan` is the total lifespan of the investment in years.
 
+  ## Amortization Schedule
+
+You can calculate the amortization schedule for a loan using the `amortization` command. You'll need to provide the initial loan amount, the annual interest rate, and the loan term in years. Here's an example:
+
+```bash
+cargo run -- amortization --loan-amount 50000 --annual-interest-rate 0.05 --loan-term-years 10
+```
+This command calculates the amortization schedule for a $50,000 loan with an annual interest rate of 5% over a 10-year term. The command will print out a table showing the remaining balance, principal payment, and interest payment for each month of the loan term.
+
+Arguments
+- `-a`, --loan-amount: The initial amount of the loan.
+- `-i`, --annual-interest-rate: The annual interest rate for the loan, expressed as a decimal (e.g., 0.05 for 5%).
+- `-t`, --loan-term-years: The term of the loan, expressed in years.
+  
 ## Examples
 ### Simple Interest
 For instance, to calculate the simple interest on a principal of 1000 with an interest rate of 5% per period for 1 period, you would run:
