@@ -27,6 +27,7 @@ enum Command {
     ROI(ROI),
     Average(Average),
     Mode(Mode),
+    Medium(Medium),
 }
 
 #[derive(Parser, Debug)]
@@ -139,6 +140,12 @@ struct Average {
 struct Mode {
     /// The numbers to calculate the mode
     #[clap(required = true)]
+    numbers: Vec<f64>,
+}
+
+#[derive(Parser, Debug)]
+struct Medium {
+    #[clap(name = "numbers", required = true)]
     numbers: Vec<f64>,
 }
 
@@ -334,6 +341,7 @@ fn main() {
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
             table.printstd();
         }
+        Command::Medium(medium) => medium.run(),
     }
 }
 
@@ -398,4 +406,52 @@ fn calculate_mode(numbers: &[f64]) -> Option<f64> {
     }
 
     None // No mode exists
+}
+
+fn calculate_medium(numbers: &[f64]) -> Option<f64> {
+    let mut sorted_numbers = numbers.to_vec();
+    sorted_numbers.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+    let len = sorted_numbers.len();
+    if len == 0 {
+        None
+    } else if len % 2 == 0 {
+        let mid = len / 2;
+        let median = (sorted_numbers[mid - 1] + sorted_numbers[mid]) / 2.0;
+        Some(median)
+    } else {
+        let mid = len / 2;
+        Some(sorted_numbers[mid])
+    }
+}
+
+impl Medium {
+    fn run(&self) {
+        let medium = calculate_medium(&self.numbers);
+
+        let mut table = Table::new();
+        table.set_format(*format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
+        table.set_titles(Row::new(vec![
+            Cell::new("Numbers").style_spec("Fg"),
+            Cell::new("Medium").style_spec("Fg"),
+        ]));
+
+        for number in &self.numbers {
+            let row = Row::new(vec![
+                Cell::new(&number.to_string()).style_spec("Fg"),
+                Cell::new("").style_spec("Fg"),
+            ]);
+            table.add_row(row);
+        }
+
+        if let Some(medium) = medium {
+            let result_row = Row::new(vec![
+                Cell::new("Result").style_spec("Fg"),
+                Cell::new(&medium.to_string()).style_spec("Fg"),
+            ]);
+            table.add_row(result_row);
+        }
+
+        table.printstd();
+    }
 }

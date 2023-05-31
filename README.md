@@ -12,7 +12,9 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `future-value`: Calculates future value.
 - `npv`: Calculates net present value.
 - `amortization`: Calculates an amortization schedule.
+- `average`: Calculates the average of a series of numbers.
 - `mode`: Calculates the mode of a series of numbers.
+- `medium`: Calculates the median of a series of numbers.
 
 ## Examples
 
@@ -95,6 +97,24 @@ The result is as follows:
 | 10   |
 +------+
 ```
+
+### Calculate Medium
+To calculate the median of a series of numbers:
+```shell
+cargo run medium --numbers 5 10 15 20 25
+```
+Results:
+```
+ Numbers | Medium 
+---------+--------
+ 5       |  
+ 10      |  
+ 15      |  
+ 20      |  
+ 25      |  
+ Result  | 15
+```
+
 ---
 ## License
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
