@@ -30,6 +30,7 @@ enum Command {
     Medium(Medium),
     PaybackPeriod(PaybackPeriod),
     BreakEven(BreakEven),
+    Depreciation(Depreciation),
 }
 
 #[derive(Parser, Debug)]
@@ -173,6 +174,72 @@ struct BreakEven {
     /// The price per unit of the product or service
     #[clap(short, long, name = "price-per-unit")]
     price_per_unit: f64,
+}
+
+#[derive(Parser, Debug)]
+struct Depreciation {
+    /// The initial value of the asset
+    #[clap(short, long, name = "initial-value")]
+    initial_value: f64,
+
+    /// The salvage value of the asset
+    #[clap(short, long, name = "salvage-value")]
+    salvage_value: f64,
+
+    /// The useful life of the asset
+    #[clap(short, long, name = "useful-life")]
+    useful_life: f64,
+
+    /// The method of depreciation (e.g., straight-line, double-declining-balance)
+    #[clap(short, long, name = "depreciation-method")]
+    depreciation_method: String,
+}
+
+impl Depreciation {
+    fn straight_line(&self) -> f64 {
+        (self.initial_value - self.salvage_value) / self.useful_life
+    }
+
+    fn double_declining_balance(&self) -> f64 {
+        let straight_line = self.straight_line();
+        let remaining_value = self.initial_value - straight_line;
+
+        (2.0 * remaining_value) / self.useful_life
+    }
+
+    // Add more functions for different types of depreciation
+
+    fn run(&self) {
+        match self.depreciation_method.as_str() {
+            "straight-line" => {
+                let straight_line_depreciation = self.straight_line();
+                let double_declining_balance_depreciation = self.double_declining_balance();
+
+                let mut table = Table::new();
+                table.set_titles(Row::new(vec![
+                    Cell::new("Depreciation Type"),
+                    Cell::new("Amount"),
+                ]));
+
+                table.add_row(Row::new(vec![
+                    Cell::new("Straight Line"),
+                    Cell::new(&straight_line_depreciation.to_string()),
+                ]));
+
+                table.add_row(Row::new(vec![
+                    Cell::new("Double Declining Balance"),
+                    Cell::new(&double_declining_balance_depreciation.to_string()),
+                ]));
+
+                // Add rows for other types of depreciation
+
+                table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+                table.printstd();
+            }
+            // Handle other types of depreciation methods here
+            _ => println!("Invalid depreciation method."),
+        }
+    }
 }
 
 
@@ -388,6 +455,9 @@ fn main() {
         }
         Command::BreakEven(break_even) => {
             calculate_break_even(break_even.fixed_costs, break_even.variable_costs, break_even.price_per_unit);
+        }
+        Command::Depreciation(depreciation) => {
+            depreciation.run();
         }
     }
 }
