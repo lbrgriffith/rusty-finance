@@ -15,6 +15,8 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `average`: Calculates the average of a series of numbers.
 - `mode`: Calculates the mode of a series of numbers.
 - `medium`: Calculates the median of a series of numbers.
+- `payback-period`: Calculates the payback period.
+- `break-even`: Performs break-even analysis.
 
 ## Examples
 
@@ -136,6 +138,29 @@ Feel free to explore other financial calculations provided by `rusty-finance` us
 ```bash
 cargo run -- payback-period --initial-cost <initial-cost> --cash-flows <cash-flow-1> --cash-flows <cash-flow-2> ...
 ```
+Replace `<fixed-costs>` with the total fixed costs incurred by the business, `<variable-costs>` with the variable costs per unit, and `<price-per-unit>` with the price per unit of the product or service.
+
+For example, to perform a Break-Even Analysis with fixed costs of $5000, variable costs of $10 per unit, and a price per unit of $20, you would run the following command:
+```shell
+cargo run -- break-even --fixed-costs 5000 --variable-costs 10 --price-per-unit 20
+```
+The tool will display the Break-Even Analysis results, including the Break-Even point in terms of the number of units that need to be sold and the total revenue required to cover all costs.
+
+Please note that the rusty-finance tool assumes a linear relationship between the number of units sold and the costs and revenue.
+
+Feel free to explore other financial calculations provided by rusty-finance using the available commands documented in the tool's usage section.
+
+
+## Break-Even Analysis
+
+The `rusty-finance` tool provides a command to perform a Break-Even Analysis. Break-Even Analysis is a financial calculation used to determine the point at which total revenue equals total costs, resulting in neither profit nor loss. It helps businesses understand the minimum level of sales required to cover all expenses.
+
+To perform a Break-Even Analysis, use the following command:
+
+```bash
+cargo run -- break-even --fixed-costs <fixed-costs> --variable-costs <variable-costs> --price-per-unit <price-per-unit>
+```
+
 ---
 ## License
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
