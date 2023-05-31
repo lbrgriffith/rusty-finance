@@ -28,6 +28,7 @@ enum Command {
     Average(Average),
     Mode(Mode),
     Medium(Medium),
+    PaybackPeriod(PaybackPeriod),
 }
 
 #[derive(Parser, Debug)]
@@ -148,6 +149,16 @@ struct Medium {
     #[clap(name = "numbers", required = true)]
     numbers: Vec<f64>,
 }
+
+#[derive(Parser, Debug)]
+struct PaybackPeriod {
+    #[clap(short = 'c', long = "cash-flows", name = "cash-flows")]
+    cash_flows: Vec<f64>,
+
+    #[clap(short = 'i', long = "initial-cost", name = "initial-cost")]
+    initial_cost: f64,
+}
+
 
 fn main() {
     let opts: Opts = Opts::parse();
@@ -342,6 +353,24 @@ fn main() {
             table.printstd();
         }
         Command::Medium(medium) => medium.run(),
+        Command::PaybackPeriod(payback_period) => {
+            let result = calculate_payback_period(payback_period.cash_flows.clone(), payback_period.initial_cost);
+        
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Cash Flows"),
+                Cell::new("Initial Cost"),
+                Cell::new("Payback Period"),
+            ]));
+            table.add_row(Row::new(vec![
+                Cell::new(&format!("{:?}", payback_period.cash_flows)),
+                Cell::new(&payback_period.initial_cost.to_string()),
+                Cell::new(&result.to_string()),
+            ]));
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }
+        
     }
 }
 
@@ -455,3 +484,20 @@ impl Medium {
         table.printstd();
     }
 }
+
+fn calculate_payback_period(cash_flows: Vec<f64>, initial_cost: f64) -> f64 {
+    let mut cumulative_cash_flow = 0.0;
+    let mut period = 0;
+
+    for cash_flow in cash_flows {
+        cumulative_cash_flow += cash_flow;
+        period += 1;
+
+        if cumulative_cash_flow >= initial_cost {
+            return period as f64;
+        }
+    }
+
+    -1.0 // Indicates that the payback period was not reached
+}
+
