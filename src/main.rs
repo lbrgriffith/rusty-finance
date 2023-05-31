@@ -1,5 +1,6 @@
 use clap::Parser;
 use prettytable::{Table, Row, Cell, format};
+use prettytable::row;
 
 /// Financial calculation tool
 #[derive(Parser, Debug)]
@@ -224,8 +225,23 @@ fn main() {
             println!("Net Present Value (NPV): {}", npv_value);
         }
         Command::Amortization(args) => {
-            calculate_amortization_schedule(args.loan_amount, args.annual_interest_rate, args.loan_term_years);
-        }
+            let loan_amount = args.loan_amount;
+            let annual_interest_rate = args.annual_interest_rate;
+            let loan_term_years = args.loan_term_years;
+        
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Month"),
+                Cell::new("Principal Payment"),
+                Cell::new("Interest Payment"),
+                Cell::new("Remaining Balance"),
+            ]));
+        
+            calculate_amortization_schedule(loan_amount, annual_interest_rate, loan_term_years, &mut table);
+        
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }        
     }
 }
 
@@ -237,17 +253,19 @@ fn calculate_future_value(present_value: f64, rate: f64, time: f64) -> f64 {
     present_value * (1.0 + rate).powf(time)
 }
 
-fn calculate_amortization_schedule(mut loan_amount: f64, annual_interest_rate: f64, loan_term_years: i32) {
+fn calculate_amortization_schedule(mut loan_amount: f64, annual_interest_rate: f64, loan_term_years: i32, table: &mut Table) {
     let monthly_interest_rate = annual_interest_rate / 12.0;
     let total_number_of_payments = loan_term_years * 12;
 
     let monthly_payment = (monthly_interest_rate * loan_amount) / (1.0 - (1.0 + monthly_interest_rate).powf(-total_number_of_payments as f64));
+
+    table.set_titles(row![bFg->"Month", bFg->"Principal", bFg->"Interest", bFg->"Remaining Balance"]);
 
     for month in 1..=total_number_of_payments {
         let interest_payment = monthly_interest_rate * loan_amount;
         let principal_payment = monthly_payment - interest_payment;
         loan_amount -= principal_payment;
 
-        println!("Month: {}, Principal: {}, Interest: {}, Remaining Balance: {}", month, principal_payment, interest_payment, loan_amount);
+        table.add_row(row![month, principal_payment, interest_payment, loan_amount]);
     }
 }
