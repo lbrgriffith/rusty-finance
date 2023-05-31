@@ -1,6 +1,8 @@
 use clap::Parser;
 use prettytable::{Table, Row, Cell, format};
 use prettytable::row;
+use std::collections::HashMap;
+
 
 /// Financial calculation tool
 #[derive(Parser, Debug)]
@@ -24,6 +26,7 @@ enum Command {
     Amortization(Amortization),
     ROI(ROI),
     Average(Average),
+    Mode(Mode),
 }
 
 #[derive(Parser, Debug)]
@@ -132,6 +135,12 @@ struct Average {
     numbers: Vec<f64>,
 }
 
+#[derive(Parser, Debug)]
+struct Mode {
+    /// The numbers to calculate the mode
+    #[clap(required = true)]
+    numbers: Vec<f64>,
+}
 
 fn main() {
     let opts: Opts = Opts::parse();
@@ -307,6 +316,24 @@ fn main() {
                 println!("Error: Invalid input. Please provide a list of numbers.");
             }
         }   
+        Command::Mode(mode) => {
+            let result = calculate_mode(&mode.numbers);
+        
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![Cell::new("Mode")]));
+        
+            match result {
+                Some(mode_value) => {
+                    table.add_row(Row::new(vec![Cell::new(&mode_value.to_string())]));
+                }
+                None => {
+                    table.add_row(Row::new(vec![Cell::new("No mode exists.")]));
+                }
+            }
+        
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }
     }
 }
 
@@ -343,4 +370,32 @@ fn calculate_average(numbers: &[f64]) -> Option<f64> {
     let sum: f64 = numbers.iter().sum();
     let average = sum / numbers.len() as f64;
     Some(average)
+}
+
+fn calculate_mode(numbers: &[f64]) -> Option<f64> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+
+    for &number in numbers {
+        let key = number.to_string();
+        let count = counts.entry(key).or_insert(0);
+        *count += 1;
+    }
+
+    let max_count = counts.values().max();
+
+    if let Some(&count) = max_count {
+        let modes: Vec<f64> = counts
+            .iter()
+            .filter(|&(_, &c)| c == count)
+            .map(|(key, _)| key.parse::<f64>().unwrap())
+            .collect();
+
+        if modes.len() == counts.len() {
+            return None; // No mode exists
+        } else {
+            return Some(*modes.first().unwrap()); // Return the first mode
+        }
+    }
+
+    None // No mode exists
 }

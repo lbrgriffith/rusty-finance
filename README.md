@@ -1,6 +1,6 @@
 # Rusty Finance
 
-Rusty Finance is a command-line tool for performing financial calculations. It supports various financial calculations such as simple interest, compound interest, present value, future value, net present value (NPV), amortization schedule, and average calculation.
+Rusty Finance is a command-line tool for performing financial calculations. It supports various financial calculations such as simple interest, compound interest, present value, future value, net present value (NPV), amortization schedule, and mode.
 
 ## Usage
 
@@ -12,6 +12,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `future-value`: Calculates future value.
 - `npv`: Calculates net present value.
 - `amortization`: Calculates an amortization schedule.
+- `mode`: Calculates the mode of a series of numbers.
 
 ## Examples
 
@@ -66,5 +67,34 @@ To calculate the average of a series of numbers, use the average command and pro
 ```shell
 $ rusty-finance average 5 10 15 20 25
 ```
+Result:
+```shell
++---------+----+
+| Number  |    |
++---------+----+
+| 5       |    |
+| 10      |    |
+| 15      |    |
+| 20      |    |
+| 25      |    |
+| Average | 15 |
++---------+----+
+```
+
+### Calculate Mode
+To calculate the mode of a series of numbers, use the mode command and provide the numbers as arguments:
+```shell
+$ rusty-finance mode 5 10 15 10 20
+
+```
+The result is as follows:
+```shell
++------+
+| Mode |
++------+
+| 10   |
++------+
+```
+---
 ## License
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
