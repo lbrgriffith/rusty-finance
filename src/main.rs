@@ -29,6 +29,7 @@ enum Command {
     Mode(Mode),
     Medium(Medium),
     PaybackPeriod(PaybackPeriod),
+    BreakEven(BreakEven),
 }
 
 #[derive(Parser, Debug)]
@@ -157,6 +158,21 @@ struct PaybackPeriod {
 
     #[clap(short = 'i', long = "initial-cost", name = "initial-cost")]
     initial_cost: f64,
+}
+
+#[derive(Parser, Debug)]
+struct BreakEven {
+    /// The total fixed costs incurred by the business
+    #[clap(short, long, name = "fixed-costs")]
+    fixed_costs: f64,
+
+    /// The variable costs per unit
+    #[clap(short, long, name = "variable-costs")]
+    variable_costs: f64,
+
+    /// The price per unit of the product or service
+    #[clap(short, long, name = "price-per-unit")]
+    price_per_unit: f64,
 }
 
 
@@ -370,7 +386,9 @@ fn main() {
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
             table.printstd();
         }
-        
+        Command::BreakEven(break_even) => {
+            calculate_break_even(break_even.fixed_costs, break_even.variable_costs, break_even.price_per_unit);
+        }
     }
 }
 
@@ -499,5 +517,26 @@ fn calculate_payback_period(cash_flows: Vec<f64>, initial_cost: f64) -> f64 {
     }
 
     -1.0 // Indicates that the payback period was not reached
+}
+
+fn calculate_break_even(fixed_costs: f64, variable_costs: f64, price_per_unit: f64) {
+    let break_even_point = fixed_costs / (price_per_unit - variable_costs);
+    let total_revenue = price_per_unit * break_even_point;
+
+    let mut table = Table::new();
+    table.set_titles(Row::new(vec![
+        Cell::new("Metric"),
+        Cell::new("Value"),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Break-Even Point (units)"),
+        Cell::new(&format!("{:.2}", break_even_point)),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Total Revenue Required ($)"),
+        Cell::new(&format!("{:.2}", total_revenue)),
+    ]));
+
+    table.printstd();
 }
 
