@@ -1,6 +1,6 @@
 # Rusty Finance
 
-Rusty Finance is a command-line tool for performing financial calculations. It supports various financial calculations such as simple interest, compound interest, present value, future value, net present value (NPV), and amortization schedule.
+Rusty Finance is a command-line tool for performing financial calculations. It supports various financial calculations such as simple interest, compound interest, present value, future value, net present value (NPV), amortization schedule, and return on investment (ROI).
 
 ## Usage
 
@@ -57,5 +57,10 @@ To calculate an _amortization schedule_, use the `amortization` command and prov
 ```shell
 $ rusty-finance amortization -a 100000 -i 0.05 -t 30
 ```
+### Calculate Return on Investment (ROI)
+```shell
+$ rusty-finance roi --net-profit 5000 --cost-of-investment 20000
+```
+
 ## License
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
