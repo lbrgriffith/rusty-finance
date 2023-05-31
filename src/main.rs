@@ -23,6 +23,7 @@ enum Command {
     /// Calculates an amortization schedule
     Amortization(Amortization),
     ROI(ROI),
+    Average(Average),
 }
 
 #[derive(Parser, Debug)]
@@ -122,6 +123,13 @@ struct ROI {
     /// The cost of investment
     #[clap(short, long, name = "cost-of-investment")]
     cost_of_investment: f64,
+}
+
+#[derive(Parser, Debug)]
+struct Average {
+    /// The numbers to calculate the average of
+    #[clap(name = "numbers")]
+    numbers: Vec<f64>,
 }
 
 
@@ -270,7 +278,35 @@ fn main() {
             ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
             table.printstd();
-        }        
+        } 
+        Command::Average(average) => {
+            let Average { numbers } = average;
+            let result = calculate_average(&numbers);
+
+            if let Some(average) = result {
+                // Printing the result as a pretty table
+                let mut table = Table::new();
+                table.set_titles(Row::new(vec![
+                    Cell::new("Number"),
+                ]));
+
+                for number in &numbers {
+                    table.add_row(Row::new(vec![
+                        Cell::new(&number.to_string()),
+                    ]));
+                }
+
+                table.add_row(Row::new(vec![
+                    Cell::new("Average"),
+                    Cell::new(&average.to_string()),
+                ]));
+
+                table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+                table.printstd();
+            } else {
+                println!("Error: Invalid input. Please provide a list of numbers.");
+            }
+        }   
     }
 }
 
@@ -297,4 +333,14 @@ fn calculate_amortization_schedule(mut loan_amount: f64, annual_interest_rate: f
 
         table.add_row(row![month, principal_payment, interest_payment, loan_amount]);
     }
+}
+
+fn calculate_average(numbers: &[f64]) -> Option<f64> {
+    if numbers.is_empty() {
+        return None;
+    }
+
+    let sum: f64 = numbers.iter().sum();
+    let average = sum / numbers.len() as f64;
+    Some(average)
 }
