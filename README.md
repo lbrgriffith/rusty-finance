@@ -114,7 +114,28 @@ Results:
  25      |  
  Result  | 15
 ```
+## Payback Period Calculation
 
+The `rusty-finance` tool provides a command to calculate the payback period of an investment. The payback period is the length of time required to recoup the initial investment through cash inflows. It is a simple metric used to assess the risk and profitability of an investment.
+
+To calculate the payback period, use the following command:
+
+Replace `<initial-cost>` with the initial investment cost and `<cash-flow-i>` with the cash inflow values for each period. You can provide multiple `--cash-flows` arguments to account for cash inflows occurring over multiple periods.
+
+For example, to calculate the payback period for an investment with an initial cost of $500 and cash inflows of $100, $200, and $300, you would run the following command:
+
+```shell
+cargo run -- payback-period --initial-cost 500 --cash-flows 100 --cash-flows 200 --cash-flows 300
+```
+The tool will display the payback period in terms of the number of periods it takes to recover the initial investment.
+
+Please note that the `rusty-finance` tool assumes the cash inflows are evenly spaced over the investment period.
+
+Feel free to explore other financial calculations provided by `rusty-finance` using the available commands documented in the tool's usage section.
+
+```bash
+cargo run -- payback-period --initial-cost <initial-cost> --cash-flows <cash-flow-1> --cash-flows <cash-flow-2> ...
+```
 ---
 ## License
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
