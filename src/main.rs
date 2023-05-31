@@ -22,6 +22,7 @@ enum Command {
     NPV(NPV),
     /// Calculates an amortization schedule
     Amortization(Amortization),
+    ROI(ROI),
 }
 
 #[derive(Parser, Debug)]
@@ -112,6 +113,16 @@ struct Amortization {
     loan_term_years: i32,
 }
 
+#[derive(Parser, Debug)]
+struct ROI {
+    /// The net profit
+    #[clap(short, long, name = "net-profit")]
+    net_profit: f64,
+
+    /// The cost of investment
+    #[clap(short, long, name = "cost-of-investment")]
+    cost_of_investment: f64,
+}
 
 
 fn main() {
@@ -239,6 +250,24 @@ fn main() {
         
             calculate_amortization_schedule(loan_amount, annual_interest_rate, loan_term_years, &mut table);
         
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }
+        Command::ROI(roi) => {
+            let ROI { net_profit, cost_of_investment } = roi;
+            let roi_value = (net_profit / cost_of_investment) * 100.0;
+
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Net Profit"),
+                Cell::new("Cost of Investment"),
+                Cell::new("ROI"),
+            ]));
+            table.add_row(Row::new(vec![
+                Cell::new(&net_profit.to_string()),
+                Cell::new(&cost_of_investment.to_string()),
+                Cell::new(&format!("{:.2}%", roi_value)),
+            ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
             table.printstd();
         }        
