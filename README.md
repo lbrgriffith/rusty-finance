@@ -17,6 +17,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `medium`: Calculates the median of a series of numbers.
 - `payback-period`: Calculates the payback period.
 - `break-even`: Performs break-even analysis.
+- `depreciation`: Calculates the depreciation of an asset.
 
 ## Examples
 
@@ -160,6 +161,29 @@ To perform a Break-Even Analysis, use the following command:
 ```bash
 cargo run -- break-even --fixed-costs <fixed-costs> --variable-costs <variable-costs> --price-per-unit <price-per-unit>
 ```
+
+## Depreciation
+The depreciation command calculates the decrease in value of an asset over time. It supports different depreciation methods, such as straight-line and double-declining balance.
+
+To calculate the depreciation, use the following command:
+```shell
+rusty-finance depreciation --initial-value <INITIAL_VALUE> --salvage-value <SALVAGE_VALUE> --useful-life <USEFUL_LIFE> --depreciation-method <DEPRECIATION_METHOD>
+```
+
+- `--initial-value`: The initial value of the asset.
+- `--salvage-value`: The salvage value of the asset.
+- `--useful-life`: The useful life of the asset.
+- `--depreciation-method`: The method of depreciation (e.g., straight-line, double-declining-balance).
+
+Example:
+```shell
+rusty-finance depreciation --initial-value 50000 --salvage-value 10000 --useful-life 5 --depreciation-method straight-line
+```
+This will calculate the depreciation using the straight-line method and display the result in a table.
+
+Note: Additional depreciation methods can be added to the Depreciation struct in the code.
+
+Feel free to adjust the description as needed. Let me know if there's anything else I can help you with!
 
 ---
 ## License
