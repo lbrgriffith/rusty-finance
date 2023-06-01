@@ -2,7 +2,7 @@ use clap::Parser;
 use prettytable::{Table, Row, Cell, format};
 use prettytable::row;
 use std::collections::HashMap;
-
+use rust_decimal::prelude::*;
 
 /// Financial calculation tool
 #[derive(Parser, Debug)]
@@ -258,11 +258,15 @@ fn main() {
                 Cell::new("Time"),
                 Cell::new("Simple Interest"),
             ]));
+
+            let formatted_principal = format_currency(principal);
+            let formatted_result = format_currency(result);
+
             table.add_row(Row::new(vec![
-                Cell::new(&principal.to_string()),
+                Cell::new(&formatted_principal),
                 Cell::new(&rate.to_string()),
                 Cell::new(&time.to_string()),
-                Cell::new(&result.to_string()),
+                Cell::new(&formatted_result),
             ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
             table.printstd();
@@ -610,3 +614,36 @@ fn calculate_break_even(fixed_costs: f64, variable_costs: f64, price_per_unit: f
     table.printstd();
 }
 
+fn format_currency(number: f64) -> String {
+    let decimal = Decimal::from_f64(number).unwrap();
+    let formatted = decimal.to_string();
+    
+    let parts: Vec<&str> = formatted.split('.').collect();
+    let whole_part = parts[0];
+    let decimal_part = parts.get(1).copied().unwrap_or("");
+    
+    let whole_part_with_commas = insert_commas(whole_part);
+
+    if decimal_part.is_empty() {
+        format!("${}", whole_part_with_commas)
+    } else {
+        format!("${}.{}", whole_part_with_commas, decimal_part)
+    }
+}
+
+fn insert_commas(number: &str) -> String {
+    let chars: Vec<char> = number.chars().collect();
+    let mut result = String::new();
+    let mut count = 0;
+
+    for i in (0..chars.len()).rev() {
+        if count == 3 {
+            result.insert(0, ',');
+            count = 0;
+        }
+        result.insert(0, chars[i]);
+        count += 1;
+    }
+
+    result
+}
