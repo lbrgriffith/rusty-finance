@@ -285,7 +285,7 @@ fn main() {
                 amount *= 1.0 + (rate / n as f64);
                 table.add_row(Row::new(vec![
                     Cell::new(&year.to_string()),
-                    Cell::new(&amount.to_string()),
+                    Cell::new(&format_currency(amount)),
                 ]));
             }
 
