@@ -387,8 +387,8 @@ fn main() {
                 Cell::new("ROI"),
             ]));
             table.add_row(Row::new(vec![
-                Cell::new(&net_profit.to_string()),
-                Cell::new(&cost_of_investment.to_string()),
+                Cell::new(&format_currency(net_profit)),
+                Cell::new(&format_currency(cost_of_investment)),
                 Cell::new(&format!("{:.2}%", roi_value)),
             ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
