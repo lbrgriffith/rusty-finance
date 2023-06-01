@@ -223,12 +223,12 @@ impl Depreciation {
 
                 table.add_row(Row::new(vec![
                     Cell::new("Straight Line"),
-                    Cell::new(&straight_line_depreciation.to_string()),
+                    Cell::new(&format_currency(straight_line_depreciation)),
                 ]));
 
                 table.add_row(Row::new(vec![
                     Cell::new("Double Declining Balance"),
-                    Cell::new(&double_declining_balance_depreciation.to_string()),
+                    Cell::new(&format_currency(double_declining_balance_depreciation)),
                 ]));
 
                 // Add rows for other types of depreciation
