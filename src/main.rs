@@ -323,10 +323,10 @@ fn main() {
                 Cell::new("Future Value"),
             ]));
             table.add_row(Row::new(vec![
-                Cell::new(&args.present_value.to_string()),
+                Cell::new(&format_currency(args.present_value)),
                 Cell::new(&args.rate.to_string()),
                 Cell::new(&args.time.to_string()),
-                Cell::new(&result.to_string()),
+                Cell::new(&format_currency(result)),
             ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
             table.printstd();
