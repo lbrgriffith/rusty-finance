@@ -356,7 +356,7 @@ fn main() {
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
             table.printstd();
         
-            println!("Net Present Value (NPV): {}", npv_value);
+            println!("Net Present Value (NPV): {}", format_currency(npv_value));
         }
         Command::Amortization(args) => {
             let loan_amount = args.loan_amount;
