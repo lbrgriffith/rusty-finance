@@ -452,7 +452,7 @@ fn main() {
             ]));
             table.add_row(Row::new(vec![
                 Cell::new(&format!("{:?}", payback_period.cash_flows)),
-                Cell::new(&payback_period.initial_cost.to_string()),
+                Cell::new(&format_currency(payback_period.initial_cost)),
                 Cell::new(&result.to_string()),
             ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
