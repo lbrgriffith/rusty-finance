@@ -488,7 +488,7 @@ fn calculate_amortization_schedule(mut loan_amount: f64, annual_interest_rate: f
         let principal_payment = monthly_payment - interest_payment;
         loan_amount -= principal_payment;
 
-        table.add_row(row![month, principal_payment, interest_payment, loan_amount]);
+        table.add_row(row![month, format_currency(principal_payment), format_currency(interest_payment), format_currency(loan_amount)]);
     }
 }
 
