@@ -348,8 +348,8 @@ fn main() {
         
                 table.add_row(Row::new(vec![
                     Cell::new(&year.to_string()),
-                    Cell::new(&cash_inflow.to_string()),
-                    Cell::new(&discounted_cash_flow.to_string()),
+                    Cell::new(&format_currency(cash_inflow)),
+                    Cell::new(&format_currency(discounted_cash_flow)),
                 ]));
             }
         
