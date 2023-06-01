@@ -605,11 +605,11 @@ fn calculate_break_even(fixed_costs: f64, variable_costs: f64, price_per_unit: f
     ]));
     table.add_row(Row::new(vec![
         Cell::new("Break-Even Point (units)"),
-        Cell::new(&format!("{:.2}", break_even_point)),
+        Cell::new(&format_currency(break_even_point)),
     ]));
     table.add_row(Row::new(vec![
         Cell::new("Total Revenue Required ($)"),
-        Cell::new(&format!("{:.2}", total_revenue)),
+        Cell::new(&format_currency(total_revenue)),
     ]));
 
     table.printstd();
