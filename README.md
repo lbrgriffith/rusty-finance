@@ -1,5 +1,7 @@
 # Rusty Finance
 
+![Rust](https://img.shields.io/badge/Rust-Programming%20Language-orange?logo=rust)
+
 Rusty Finance is a command-line tool for performing financial calculations. It supports various financial calculations such as simple interest, compound interest, present value, future value, net present value (NPV), amortization schedule, and mode.
 
 ## Usage
