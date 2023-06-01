@@ -101,16 +101,7 @@ To calculate an _amortization schedule_, use the `amortization` command and prov
 ```shell
 $ rusty-finance amortization -a 100000 -i 0.05 -t 30
 ```
-Result;
-### Calculate Return on Investment (ROI)
-```shell
-$ rusty-finance roi --net-profit 5000 --cost-of-investment 20000
-```
-### Calculate Average
-To calculate the average of a series of numbers, use the average command and provide the numbers:
-```shell
-$ rusty-finance average 5 10 15 20 25
-```
+
 Result:
 ```
 +-------+-----------+----------+-------------------+
@@ -238,6 +229,17 @@ Result:
 | 120   | $1,056.25 | $4.40    | $-0.00            |
 +-------+-----------+----------+-------------------+
 ```
+
+### Calculate Return on Investment (ROI)
+```shell
+$ rusty-finance roi --net-profit 5000 --cost-of-investment 20000
+```
+### Calculate Average
+To calculate the average of a series of numbers, use the average command and provide the numbers:
+```shell
+$ rusty-finance average 5 10 15 20 25
+```
+
 
 ```shell
 +---------+----+
