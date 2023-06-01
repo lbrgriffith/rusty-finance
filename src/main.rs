@@ -223,12 +223,12 @@ impl Depreciation {
 
                 table.add_row(Row::new(vec![
                     Cell::new("Straight Line"),
-                    Cell::new(&straight_line_depreciation.to_string()),
+                    Cell::new(&format_currency(straight_line_depreciation)),
                 ]));
 
                 table.add_row(Row::new(vec![
                     Cell::new("Double Declining Balance"),
-                    Cell::new(&double_declining_balance_depreciation.to_string()),
+                    Cell::new(&format_currency(double_declining_balance_depreciation)),
                 ]));
 
                 // Add rows for other types of depreciation
@@ -285,7 +285,7 @@ fn main() {
                 amount *= 1.0 + (rate / n as f64);
                 table.add_row(Row::new(vec![
                     Cell::new(&year.to_string()),
-                    Cell::new(&amount.to_string()),
+                    Cell::new(&format_currency(amount)),
                 ]));
             }
 
@@ -302,11 +302,12 @@ fn main() {
                 Cell::new("Time"),
                 Cell::new("Present Value"),
             ]));
+
             table.add_row(Row::new(vec![
-                Cell::new(&args.future_value.to_string()),
+                Cell::new(&format_currency(args.future_value)),
                 Cell::new(&args.rate.to_string()),
                 Cell::new(&args.time.to_string()),
-                Cell::new(&result.to_string()),
+                Cell::new(&format_currency(result)),
             ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
             table.printstd();
@@ -322,10 +323,10 @@ fn main() {
                 Cell::new("Future Value"),
             ]));
             table.add_row(Row::new(vec![
-                Cell::new(&args.present_value.to_string()),
+                Cell::new(&format_currency(args.present_value)),
                 Cell::new(&args.rate.to_string()),
                 Cell::new(&args.time.to_string()),
-                Cell::new(&result.to_string()),
+                Cell::new(&format_currency(result)),
             ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
             table.printstd();
@@ -347,8 +348,8 @@ fn main() {
         
                 table.add_row(Row::new(vec![
                     Cell::new(&year.to_string()),
-                    Cell::new(&cash_inflow.to_string()),
-                    Cell::new(&discounted_cash_flow.to_string()),
+                    Cell::new(&format_currency(cash_inflow)),
+                    Cell::new(&format_currency(discounted_cash_flow)),
                 ]));
             }
         
@@ -386,8 +387,8 @@ fn main() {
                 Cell::new("ROI"),
             ]));
             table.add_row(Row::new(vec![
-                Cell::new(&net_profit.to_string()),
-                Cell::new(&cost_of_investment.to_string()),
+                Cell::new(&format_currency(net_profit)),
+                Cell::new(&format_currency(cost_of_investment)),
                 Cell::new(&format!("{:.2}%", roi_value)),
             ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
@@ -451,7 +452,7 @@ fn main() {
             ]));
             table.add_row(Row::new(vec![
                 Cell::new(&format!("{:?}", payback_period.cash_flows)),
-                Cell::new(&payback_period.initial_cost.to_string()),
+                Cell::new(&format_currency(payback_period.initial_cost)),
                 Cell::new(&result.to_string()),
             ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
@@ -487,7 +488,7 @@ fn calculate_amortization_schedule(mut loan_amount: f64, annual_interest_rate: f
         let principal_payment = monthly_payment - interest_payment;
         loan_amount -= principal_payment;
 
-        table.add_row(row![month, principal_payment, interest_payment, loan_amount]);
+        table.add_row(row![month, format_currency(principal_payment), format_currency(interest_payment), format_currency(loan_amount)]);
     }
 }
 
@@ -604,11 +605,11 @@ fn calculate_break_even(fixed_costs: f64, variable_costs: f64, price_per_unit: f
     ]));
     table.add_row(Row::new(vec![
         Cell::new("Break-Even Point (units)"),
-        Cell::new(&format!("{:.2}", break_even_point)),
+        Cell::new(&format_currency(break_even_point)),
     ]));
     table.add_row(Row::new(vec![
         Cell::new("Total Revenue Required ($)"),
-        Cell::new(&format!("{:.2}", total_revenue)),
+        Cell::new(&format_currency(total_revenue)),
     ]));
 
     table.printstd();
@@ -627,7 +628,7 @@ fn format_currency(number: f64) -> String {
     if decimal_part.is_empty() {
         format!("${}", whole_part_with_commas)
     } else {
-        format!("${}.{}", whole_part_with_commas, decimal_part)
+        format!("${}.{:.2}", whole_part_with_commas, decimal_part)
     }
 }
 
