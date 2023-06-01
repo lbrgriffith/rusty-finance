@@ -302,11 +302,12 @@ fn main() {
                 Cell::new("Time"),
                 Cell::new("Present Value"),
             ]));
+
             table.add_row(Row::new(vec![
-                Cell::new(&args.future_value.to_string()),
+                Cell::new(&format_currency(args.future_value)),
                 Cell::new(&args.rate.to_string()),
                 Cell::new(&args.time.to_string()),
-                Cell::new(&result.to_string()),
+                Cell::new(&format_currency(result)),
             ]));
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
             table.printstd();
@@ -627,7 +628,7 @@ fn format_currency(number: f64) -> String {
     if decimal_part.is_empty() {
         format!("${}", whole_part_with_commas)
     } else {
-        format!("${}.{}", whole_part_with_commas, decimal_part)
+        format!("${}.{:.2}", whole_part_with_commas, decimal_part)
     }
 }
 
