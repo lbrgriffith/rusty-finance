@@ -6,7 +6,7 @@ use rust_decimal::prelude::*;
 
 /// Financial calculation tool
 #[derive(Parser, Debug)]
-#[clap(author, version, about)]
+#[command(author, version, about, long_about = None)]
 struct Opts {
     #[clap(subcommand)]
     command: Command,
