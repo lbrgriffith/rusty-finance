@@ -21,6 +21,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `break-even`: Performs break-even analysis.
 - `depreciation`: Calculates the depreciation of an asset.
 - `irr`: Calculates the internal rate of return.
+- `variance`: Measures how much the numbers in a data set deviate from the mean.
 
 ## Examples
 
@@ -368,6 +369,25 @@ This command will calculate the IRR based on the provided cash flows: `1000, -50
 
 ```
 Internal Rate of Return (IRR): 186.37%
+```
+## Variance
+Calculating the variance and standard deviation are common statistical measures used to understand the spread or dispersion of a series of numbers. They provide insights into the variability or consistency of the data set. Here's an overview of these calculations:
+```shell
+rusty-finance variance 10 20 30 40 50
+```
+
+Results:
+```
++----------+-----+
+| Number   |     |
++----------+-----+
+| 10       |     |
+| 20       |     |
+| 30       |     |
+| 40       |     |
+| 50       |     |
+| Variance | 200 |
++----------+-----+
 ```
 
 ---
