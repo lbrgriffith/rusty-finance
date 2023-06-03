@@ -32,6 +32,7 @@ enum Command {
     BreakEven(BreakEven),
     Depreciation(Depreciation),
     IRR(IRR),
+    Variance(Variance),
 }
 
 #[derive(Parser, Debug)]
@@ -292,6 +293,14 @@ impl IRR {
     }
 }
 
+#[derive(Parser, Debug)]
+struct Variance {
+    /// The numbers to calculate the variance
+    #[clap(name = "numbers")]
+    numbers: Vec<String>,
+}
+
+
 fn main() {
     let opts: Opts = Opts::parse();
 
@@ -516,6 +525,33 @@ fn main() {
         Command::Depreciation(depreciation) => {
             depreciation.run();
         }
+        Command::Variance(variance) => {
+            let numbers: Vec<f64> = variance.numbers
+                .iter()
+                .map(|n| n.parse::<f64>().unwrap())
+                .collect();
+        
+            let result = calculate_variance(&numbers);
+        
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Number"),
+            ]));
+        
+            for number in &numbers {
+                table.add_row(Row::new(vec![
+                    Cell::new(&number.to_string()),
+                ]));
+            }
+        
+            table.add_row(Row::new(vec![
+                Cell::new("Variance"),
+                Cell::new(&result.unwrap_or(0.0).to_string()),
+            ]));
+        
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }        
     }
 }
 
@@ -699,4 +735,21 @@ fn insert_commas(number: &str) -> String {
     }
 
     result
+}
+
+fn calculate_variance(numbers: &[f64]) -> Option<f64> {
+    let count = numbers.len() as f64;
+
+    if count <= 1.0 {
+        return None; // Variance is undefined for a single element or an empty data set
+    }
+
+    let mean = numbers.iter().sum::<f64>() / count;
+
+    let sum_squared_diff: f64 = numbers
+        .iter()
+        .map(|&x| (x - mean).powi(2))
+        .sum();
+
+    Some(sum_squared_diff / count)
 }
