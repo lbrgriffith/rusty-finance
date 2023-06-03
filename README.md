@@ -2,7 +2,7 @@
 
 ![Rust](https://img.shields.io/badge/Rust-Programming%20Language-orange?logo=rust)
 
-Rusty Finance is a command-line tool for performing financial calculations. It supports various financial calculations such as simple interest, compound interest, present value, future value, net present value (NPV), amortization schedule, and mode.
+Rusty Finance is a command-line tool for performing financial calculations. It supports various financial calculations such as simple interest, compound interest, present value, future value, net present value (NPV), amortization schedule, IRR, and mode.
 
 ## Usage
 
@@ -20,6 +20,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `payback-period`: Calculates the payback period.
 - `break-even`: Performs break-even analysis.
 - `depreciation`: Calculates the depreciation of an asset.
+- `irr`: Calculates the internal rate of return.
 
 ## Examples
 
@@ -352,6 +353,22 @@ This will calculate the depreciation using the straight-line method and display 
 Note: Additional depreciation methods can be added to the Depreciation struct in the code.
 
 Feel free to adjust the description as needed. Let me know if there's anything else I can help you with!
+
+## Calculate IRR
+**IRR (Internal Rate of Return)**: This function calculates the internal rate of return for a series of cash flows. It helps evaluate the profitability of an investment by determining the discount rate at which the net present value (NPV) of the cash flows becomes zero.
+
+## Example
+To calculate the internal rate of return (IRR) for a series of cash flows, use the irr command followed by the cash flow values. For example:
+
+```shell
+rusty-finance irr -- 1000 -500 300 200 -100
+```
+
+This command will calculate the IRR based on the provided cash flows: `1000, -500, 300, 200, -100`.
+
+```
+Internal Rate of Return (IRR): 186.37%
+```
 
 ---
 ## License
