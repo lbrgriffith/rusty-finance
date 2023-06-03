@@ -31,6 +31,7 @@ enum Command {
     PaybackPeriod(PaybackPeriod),
     BreakEven(BreakEven),
     Depreciation(Depreciation),
+    IRR(IRR),
 }
 
 #[derive(Parser, Debug)]
@@ -242,11 +243,62 @@ impl Depreciation {
     }
 }
 
+#[derive(Parser, Debug)]
+struct IRR {
+    /// The cash flows for the investment/project
+    #[clap(name = "cash-flows")]
+    cash_flows: Vec<f64>,
+}
+
+impl IRR {
+    fn execute(&self) {
+        match self.calculate_irr() {
+            Some(irr) => println!("Internal Rate of Return (IRR): {:.2}%", irr * 100.0),
+            None => println!("Unable to calculate the Internal Rate of Return (IRR)"),
+        }
+    }
+    fn calculate_irr(&self) -> Option<f64> {
+        const MAX_ITERATIONS: u32 = 100;
+        const PRECISION: f64 = 0.0001;
+
+        let mut guess = 0.1; // Initial guess for IRR
+        let mut iteration = 0;
+
+        loop {
+            let mut npv = 0.0;
+            let mut npv_derivative = 0.0;
+
+            for (index, cash_flow) in self.cash_flows.iter().enumerate() {
+                let power = (self.cash_flows.len() - index - 1) as f64;
+                npv += cash_flow / f64::powf(1.0 + guess, power);
+                npv_derivative += -power * cash_flow / f64::powf(1.0 + guess, power + 1.0);
+            }
+
+            let new_guess = guess - npv / npv_derivative;
+
+            if (guess - new_guess).abs() < PRECISION {
+                return Some(new_guess);
+            }
+
+            guess = new_guess;
+            iteration += 1;
+
+            if iteration > MAX_ITERATIONS {
+                break;
+            }
+        }
+
+        None // Unable to converge within the maximum number of iterations
+    }
+}
 
 fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
+        Command::IRR(irr) => {
+            irr.execute();
+        }
         Command::Interest(interest) => {
             let Interest { principal, rate, time } = interest;
             let result = principal * rate * time;
