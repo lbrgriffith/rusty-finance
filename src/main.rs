@@ -33,6 +33,7 @@ enum Command {
     Depreciation(Depreciation),
     IRR(IRR),
     Variance(Variance),
+    StandardDeviation(StandardDeviation),
 }
 
 #[derive(Parser, Debug)]
@@ -300,6 +301,13 @@ struct Variance {
     numbers: Vec<String>,
 }
 
+#[derive(Parser, Debug)]
+struct StandardDeviation {
+    /// The numbers to calculate the standard deviation of.
+    #[clap(name = "numbers")]
+    numbers: Vec<f64>,
+}
+
 
 fn main() {
     let opts: Opts = Opts::parse();
@@ -307,6 +315,19 @@ fn main() {
     match opts.command {
         Command::IRR(irr) => {
             irr.execute();
+        }
+        Command::StandardDeviation(standard_deviation) => {
+            let numbers = standard_deviation.numbers;
+            let result = calculate_standard_deviation(&numbers);
+
+            match result {
+                Some(standard_deviation) => {
+                    println!("Standard Deviation: {}", standard_deviation);
+                }
+                None => {
+                    println!("Error: Standard deviation calculation requires a data set with at least 2 numbers.");
+                }
+            }
         }
         Command::Interest(interest) => {
             let Interest { principal, rate, time } = interest;
@@ -752,4 +773,29 @@ fn calculate_variance(numbers: &[f64]) -> Option<f64> {
         .sum();
 
     Some(sum_squared_diff / count)
+}
+
+fn calculate_standard_deviation(numbers: &[f64]) -> Option<f64> {
+    let n = numbers.len() as f64;
+
+    if n < 2.0 {
+        return None;
+    }
+
+    let mean = calculate_mean(numbers);
+
+    let sum_squared_deviations = numbers
+        .iter()
+        .map(|&number| (number - mean).powi(2))
+        .sum::<f64>();
+
+    let variance = sum_squared_deviations / (n - 1.0);
+
+    Some(variance.sqrt())
+}
+
+fn calculate_mean(numbers: &[f64]) -> f64 {
+    let sum: f64 = numbers.iter().sum();
+    let count = numbers.len() as f64;
+    sum / count
 }
