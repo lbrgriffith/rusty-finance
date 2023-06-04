@@ -14,24 +14,35 @@ struct Opts {
 
 #[derive(Parser, Debug)]
 enum Command {
-    /// Calculates simple interest
+    /// Calculates simple interest.
     Interest(Interest),
-    /// Calculates compound interest
+    /// Calculates compound interest.
     CompoundInterest(CompoundInterest),
+    /// Calculates present value.
     PresentValue(PresentValue),
+    /// Calculates future value.
     FutureValue(FutureValue),
-    /// Calculates net present value
+    /// Calculates net present value.
     NPV(NPV),
-    /// Calculates an amortization schedule
+    /// Calculates an amortization schedule.
     Amortization(Amortization),
+    /// Calculates the return on investment (ROI).
     ROI(ROI),
+    /// Calculates the average of a series of numbers.
     Average(Average),
+    /// Calculates the mode of a series of numbers.
     Mode(Mode),
+    /// Calculates the median of a series of numbers.
     Medium(Medium),
+    /// Calculates the payback period.
     PaybackPeriod(PaybackPeriod),
+    /// Performs break-even analysis.
     BreakEven(BreakEven),
+    /// Calculates the depreciation of an asset.
     Depreciation(Depreciation),
+    /// Calculates the internal rate of return (IRR).
     IRR(IRR),
+    /// Calculates the variance of a series of numbers.
     Variance(Variance),
 }
 
@@ -71,23 +82,35 @@ struct CompoundInterest {
 
 #[derive(Parser, Debug)]
 struct PresentValue {
+    /// The future value of the investment.
     #[clap(short, long)]
     future_value: f64,
+
+    /// The interest rate per period.
     #[clap(short, long)]
     rate: f64,
+
+    /// The number of periods.
     #[clap(short, long)]
     time: f64,
 }
 
+
 #[derive(Parser, Debug)]
 struct FutureValue {
+    /// The present value of the investment.
     #[clap(short, long)]
     present_value: f64,
+
+    /// The interest rate per period.
     #[clap(short, long)]
     rate: f64,
+
+    /// The number of periods.
     #[clap(short, long)]
     time: f64,
 }
+
 
 #[derive(Parser, Debug)]
 struct NPV {
