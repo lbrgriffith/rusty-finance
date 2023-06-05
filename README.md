@@ -22,6 +22,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `depreciation`: Calculates the depreciation of an asset.
 - `irr`: Calculates the internal rate of return.
 - `variance`: Measures how much the numbers in a data set deviate from the mean.
+- `probability`: Calculates the probability of an event.
 
 ## Examples
 
@@ -390,6 +391,17 @@ Results:
 +----------+-----+
 ```
 
+## Example: Calculating Probability
+To calculate the probability of getting heads when flipping a fair coin, you can use the following command:
+```shell
+rusty-finance probability --successes 1 --trials 1
+```
+### Result
+```
+```
+Successes: 1
+Trials:    1
+Probability: 0.5 (50.0%)
 ---
 ## License
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
