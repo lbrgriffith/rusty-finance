@@ -328,10 +328,27 @@ fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
-            Command::Probability(probability) => {
-            let result = calculate_probability(probability.successes, probability.trials);
-            println!("Probability: {}", result);
-       }
+        Command::Probability(probability) => {
+            let successes = probability.successes;
+            let trials = probability.trials;
+            let result = calculate_probability(successes, trials);
+
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Successes"),
+                Cell::new("Trials"),
+                Cell::new("Probability"),
+            ]));
+
+            table.add_row(Row::new(vec![
+                Cell::new(&successes.to_string()),
+                Cell::new(&trials.to_string()),
+                Cell::new(&format!("{:.2}%", result * 100.0)),
+            ]));
+
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }
         Command::IRR(irr) => {
             irr.execute();
         }

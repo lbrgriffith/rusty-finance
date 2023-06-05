@@ -394,14 +394,16 @@ Results:
 ## Example: Calculating Probability
 To calculate the probability of getting heads when flipping a fair coin, you can use the following command:
 ```shell
-rusty-finance probability --successes 1 --trials 1
+rusty-finance probability --successes 3 --trials 5
 ```
 ### Result
 ```
++-----------+--------+-------------+
+| Successes | Trials | Probability |
++-----------+--------+-------------+
+| 3         | 5      | 60.00%      |
++-----------+--------+-------------+
 ```
-Successes: 1
-Trials:    1
-Probability: 0.5 (50.0%)
 ---
 ## License
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
