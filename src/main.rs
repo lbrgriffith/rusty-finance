@@ -34,6 +34,7 @@ enum Command {
     IRR(IRR),
     Variance(Variance),
     StandardDeviation(StandardDeviation),
+    Probability(Probability),
 }
 
 #[derive(Parser, Debug)]
@@ -308,11 +309,46 @@ struct StandardDeviation {
     numbers: Vec<f64>,
 }
 
+#[derive(Parser, Debug)]
+struct Probability {
+    /// The number of successful outcomes
+    #[clap(short, long)]
+    successes: u32,
+
+    /// The number of total trials
+    #[clap(short, long)]
+    trials: u32,
+}
+
+fn calculate_probability(successes: u32, trials: u32) -> f64 {
+    (successes as f64) / (trials as f64)
+}
 
 fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
+        Command::Probability(probability) => {
+            let successes = probability.successes;
+            let trials = probability.trials;
+            let result = calculate_probability(successes, trials);
+
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Successes"),
+                Cell::new("Trials"),
+                Cell::new("Probability"),
+            ]));
+
+            table.add_row(Row::new(vec![
+                Cell::new(&successes.to_string()),
+                Cell::new(&trials.to_string()),
+                Cell::new(&format!("{:.2}%", result * 100.0)),
+            ]));
+
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }
         Command::IRR(irr) => {
             irr.execute();
         }
