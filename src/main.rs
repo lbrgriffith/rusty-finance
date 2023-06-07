@@ -35,7 +35,25 @@ enum Command {
     Variance(Variance),
     StandardDeviation(StandardDeviation),
     Probability(Probability),
+    /// Calculates the expected return on an investment based on its risk and market factors.
+    CAPM(CAPM),
 }
+
+#[derive(Parser, Debug)]
+struct CAPM {
+    /// The risk-free rate
+    #[clap(short, long)]
+    risk_free_rate: f64,
+
+    /// The asset's beta coefficient
+    #[clap(short, long)]
+    beta: f64,
+
+    /// The expected return of the market
+    #[clap(short, long)]
+    market_return: f64,
+}
+
 
 #[derive(Parser, Debug)]
 struct Interest {
@@ -324,10 +342,35 @@ fn calculate_probability(successes: u32, trials: u32) -> f64 {
     (successes as f64) / (trials as f64)
 }
 
+fn calculate_capm(risk_free_rate: f64, beta: f64, market_return: f64) -> f64 {
+    risk_free_rate + beta * (market_return - risk_free_rate)
+}
+
 fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
+        Command::CAPM(capm) => {
+            let expected_return = calculate_capm(capm.risk_free_rate, capm.beta, capm.market_return);
+
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Risk-Free Rate"),
+                Cell::new("Beta"),
+                Cell::new("Market Return"),
+                Cell::new("Expected Return"),
+            ]));
+
+            table.add_row(Row::new(vec![
+                Cell::new(&format!("{:.2}%", capm.risk_free_rate * 100.0)),
+                Cell::new(&capm.beta.to_string()),
+                Cell::new(&format!("{:.2}%", capm.market_return * 100.0)),
+                Cell::new(&format!("{:.2}%", expected_return * 100.0)),
+            ]));
+
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }
         Command::Probability(probability) => {
             let successes = probability.successes;
             let trials = probability.trials;
