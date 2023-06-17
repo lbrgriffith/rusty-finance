@@ -50,6 +50,27 @@ enum Command {
     CAPM(CAPM),
     /// Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
     LoanPayment(LoanPayment),
+    /// Calculate the number of units a business needs to sell to break even, taking into account fixed costs, variable costs per unit, and selling price per unit.
+    BreakEvenUnits(BreakEvenUnits),
+}
+
+#[derive(Parser, Debug)]
+struct BreakEvenUnits {
+    /// The fixed costs incurred by the business
+    #[clap(short, long, name = "fixed-costs")]
+    fixed_costs: f64,
+
+    /// The variable costs per unit
+    #[clap(short, long, name = "variable-costs")]
+    variable_costs: f64,
+
+    /// The price per unit of the product or service
+    #[clap(short, long, name = "price-per-unit")]
+    price_per_unit: f64,
+}
+
+fn calculate_break_even_units(fixed_costs: f64, variable_costs: f64, price_per_unit: f64) -> f64 {
+    fixed_costs / (price_per_unit - variable_costs)
 }
 
 #[derive(Parser, Debug)]
@@ -404,6 +425,21 @@ fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
+        Command::BreakEvenUnits(break_even_units) => {
+            let break_even_point = calculate_break_even_units(break_even_units.fixed_costs, break_even_units.variable_costs, break_even_units.price_per_unit);
+        
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Metric"),
+                Cell::new("Value"),
+            ]));
+            table.add_row(Row::new(vec![
+                Cell::new("Break-Even Point (Units)"),
+                Cell::new(&break_even_point.to_string()),
+            ]));
+        
+            table.printstd();
+        }        
         Command::LoanPayment(loan_payment) => {
             let payment_amount = loan_payment.calculate_loan_payment();
         
