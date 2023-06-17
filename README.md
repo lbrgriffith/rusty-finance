@@ -26,6 +26,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `capm`: Calculates the expected return using the Capital Asset Pricing Model.
 - `loan-payment`: Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
 - `break-even-units`: Calculate the number of units a business needs to sell to break even.
+- `dcf`: Calculates the present value of future cash flows, considering the time value of money.
 
 ## Examples
 
@@ -386,13 +387,28 @@ Calculates the number of units a business needs to sell to break even, taking in
 rusty-finance  break-even-units --fixed-costs 1000 --variable-costs 10 --price-per-unit 20
 ```
 
-### Reesult
+### Result
 ```
 +--------------------------+-------+
 | Metric                   | Value |
 +==========================+=======+
 | Break-Even Point (Units) | 100   |
 +--------------------------+-------+
+```
+
+## Discounted Cash Flow (DCF)
+Implement a DCF calculator that calculates the present value of future cash flows, considering the time value of money.
+
+```shell
+cargo run -- dcf --discount-rate 0.1 1000 2000 3000
+```
+### Result
+```
++---------------+--------------------------+-----------+
+| Discount Rate | Cash Flows               | DCF Value |
++---------------+--------------------------+-----------+
+| 10.00%        | [1000.0, 2000.0, 3000.0] | $4,815.92 |
++---------------+--------------------------+-----------+
 ```
 
 > **Thanks!**
