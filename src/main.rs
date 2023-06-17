@@ -48,6 +48,37 @@ enum Command {
     Probability(Probability),
     /// Calculates the expected return on an investment based on its risk and market factors.
     CAPM(CAPM),
+    /// Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
+    LoanPayment(LoanPayment),
+}
+
+#[derive(Parser, Debug)]
+struct LoanPayment {
+    /// The principal amount of the loan
+    #[clap(short, long)]
+    principal: f64,
+
+    /// The annual interest rate of the loan
+    #[clap(short, long)]
+    interest_rate: f64,
+
+    /// The loan term in years
+    #[clap(short, long)]
+    loan_term: f64,
+}
+
+impl LoanPayment {
+    fn calculate_loan_payment(&self) -> f64 {
+        // Perform loan payment calculation based on the input parameters
+        // Return the calculated loan payment amount
+        // You can use the formulas for loan payment calculations, such as the one below:
+        let n = self.loan_term * 12.0; // Number of monthly payments
+        let r = self.interest_rate / 100.0 / 12.0; // Monthly interest rate
+
+        let loan_payment = (self.principal * r) / (1.0 - (1.0 + r).powf(-n));
+
+        loan_payment
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -373,6 +404,27 @@ fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
+        Command::LoanPayment(loan_payment) => {
+            let payment_amount = loan_payment.calculate_loan_payment();
+        
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Principal"),
+                Cell::new("Interest Rate"),
+                Cell::new("Loan Term"),
+                Cell::new("Monthly Payment"),
+            ]));
+        
+            table.add_row(Row::new(vec![
+                Cell::new(&format_currency(loan_payment.principal)),
+                Cell::new(&format!("{:.2}%", loan_payment.interest_rate)),
+                Cell::new(&format!("{:.0} years", loan_payment.loan_term)),
+                Cell::new(&format_currency(payment_amount)),
+            ]));
+        
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }
         Command::CAPM(capm) => {
             let expected_return = calculate_capm(capm.risk_free_rate, capm.beta, capm.market_return);
 
