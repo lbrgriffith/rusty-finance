@@ -24,6 +24,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `variance`: Measures how much the numbers in a data set deviate from the mean.
 - `probability`: Calculates the probability of an event.
 - `capm`: Calculates the expected return using the Capital Asset Pricing Model.
+- `loan-payment`: Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
 
 ## Examples
 
@@ -360,6 +361,20 @@ This command will calculate the expected return based on the provided risk-free 
 | 5.00%          | 1.2  | 10.00%        | 11.00%          |
 +----------------+------+---------------+-----------------+
 ```
+
+## Loan Calculator
+Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
+
+```shell
+rusty-finance loan-payment --principal 100000 --interest-rate 5 --loan-term 10
+```
+
+### Result
++-----------+---------------+-----------+-----------------+
+| Principal | Interest Rate | Loan Term | Monthly Payment |
++-----------+---------------+-----------+-----------------+
+| $100,000  | 5.00%         | 10 years  | $1,060.65       |
++-----------+---------------+-----------+-----------------+
 
 > **Thanks!**
 > Enjoy using Rusty Finance for your financial calculations! If you have any further questions, feel free to ask.
