@@ -371,11 +371,13 @@ rusty-finance loan-payment --principal 100000 --interest-rate 5 --loan-term 10
 ```
 
 ### Result
+```
 +-----------+---------------+-----------+-----------------+
 | Principal | Interest Rate | Loan Term | Monthly Payment |
 +-----------+---------------+-----------+-----------------+
 | $100,000  | 5.00%         | 10 years  | $1,060.65       |
 +-----------+---------------+-----------+-----------------+
+```
 
 ## Break-Even Point in Units
 Calculates the number of units a business needs to sell to break even, taking into account fixed costs, variable costs per unit, and selling price per unit.
