@@ -52,7 +52,32 @@ enum Command {
     LoanPayment(LoanPayment),
     /// Calculate the number of units a business needs to sell to break even, taking into account fixed costs, variable costs per unit, and selling price per unit.
     BreakEvenUnits(BreakEvenUnits),
+    ///  Implement a DCF calculator that calculates the present value of future cash flows, considering the time value of money.
+    DCF(DCF),
 }
+
+#[derive(Parser, Debug)]
+struct DCF {
+    /// The discount rate
+    #[clap(short, long, name = "discount-rate")]
+    discount_rate: f64,
+
+    /// The cash flows for the investment/project
+    #[clap(name = "cash-flows")]
+    cash_flows: Vec<f64>,
+}
+
+
+fn calculate_dcf(cash_flows: &[f64], discount_rate: f64) -> f64 {
+    let present_values: Vec<f64> = cash_flows
+        .iter()
+        .enumerate()
+        .map(|(index, &cash_flow)| cash_flow / (1.0 + discount_rate).powf((index + 1) as f64))
+        .collect();
+
+    present_values.iter().sum()
+}
+
 
 #[derive(Parser, Debug)]
 struct BreakEvenUnits {
@@ -425,6 +450,23 @@ fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
+        Command::DCF(dcf) => {
+            let dcf_value = calculate_dcf(&dcf.cash_flows, dcf.discount_rate);
+        
+            let mut table = Table::new();
+            table.set_titles(Row::new(vec![
+                Cell::new("Discount Rate"),
+                Cell::new("Cash Flows"),
+                Cell::new("DCF Value"),
+            ]));
+            table.add_row(Row::new(vec![
+                Cell::new(&format!("{:.2}%", dcf.discount_rate * 100.0)),
+                Cell::new(&format!("{:?}", dcf.cash_flows)),
+                Cell::new(&format_currency(dcf_value)),
+            ]));
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+            table.printstd();
+        }                
         Command::BreakEvenUnits(break_even_units) => {
             let break_even_point = calculate_break_even_units(break_even_units.fixed_costs, break_even_units.variable_costs, break_even_units.price_per_unit);
         
