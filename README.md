@@ -25,6 +25,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `probability`: Calculates the probability of an event.
 - `capm`: Calculates the expected return using the Capital Asset Pricing Model.
 - `loan-payment`: Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
+- `break-even-units`: Calculate the number of units a business needs to sell to break even.
 
 ## Examples
 
@@ -375,6 +376,22 @@ rusty-finance loan-payment --principal 100000 --interest-rate 5 --loan-term 10
 +-----------+---------------+-----------+-----------------+
 | $100,000  | 5.00%         | 10 years  | $1,060.65       |
 +-----------+---------------+-----------+-----------------+
+
+## Break-Even Point in Units
+Calculates the number of units a business needs to sell to break even, taking into account fixed costs, variable costs per unit, and selling price per unit.
+
+```shell
+rusty-finance  break-even-units --fixed-costs 1000 --variable-costs 10 --price-per-unit 20
+```
+
+### Reesult
+```
++--------------------------+-------+
+| Metric                   | Value |
++==========================+=======+
+| Break-Even Point (Units) | 100   |
++--------------------------+-------+
+```
 
 > **Thanks!**
 > Enjoy using Rusty Finance for your financial calculations! If you have any further questions, feel free to ask.
