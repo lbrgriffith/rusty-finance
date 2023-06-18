@@ -3,6 +3,8 @@ use prettytable::{Table, Row, Cell, format};
 use prettytable::row;
 use std::collections::HashMap;
 use rust_decimal::prelude::*;
+use chrono::prelude::*;
+use chrono::Duration;
 
 /// Financial calculation tool
 #[derive(Parser, Debug)]
@@ -54,7 +56,25 @@ enum Command {
     BreakEvenUnits(BreakEvenUnits),
     ///  Implement a DCF calculator that calculates the present value of future cash flows, considering the time value of money.
     DCF(DCF),
+    /// Calculates mortgage payments, total interest paid, and loan payoff date
+    Mortgage(Mortgage),
 }
+
+#[derive(Parser, Debug)]
+struct Mortgage {
+    /// The loan amount
+    #[clap(short, long, name = "loan-amount")] // Update the attribute to use kebab case
+    loan_amount: f64,
+
+    /// The annual interest rate
+    #[clap(short, long, name = "interest-rate")] // Update the attribute to use kebab case
+    interest_rate: f64,
+
+    /// The loan term in years
+    #[clap(short, long)]
+    term: i32,
+}
+
 
 #[derive(Parser, Debug)]
 struct DCF {
@@ -446,10 +466,73 @@ fn calculate_capm(risk_free_rate: f64, beta: f64, market_return: f64) -> f64 {
     risk_free_rate + beta * (market_return - risk_free_rate)
 }
 
+impl Mortgage {
+    fn calculate_mortgage(&self) -> (f64, f64, NaiveDate) {
+        // Convert interest rate from annual to monthly
+        let monthly_interest_rate = self.interest_rate / 12.0 / 100.0;
+
+        // Convert loan term from years to months
+        let loan_term_months = self.term * 12;
+
+        // Calculate monthly payment
+        let monthly_payment = (self.loan_amount * monthly_interest_rate)
+            / (1.0 - (1.0 + monthly_interest_rate).powi(-loan_term_months));
+
+        // Calculate total payment
+        let total_payment = monthly_payment * loan_term_months as f64;
+
+        // Calculate total interest paid
+        let total_interest_paid = total_payment - self.loan_amount;
+
+        // Calculate loan payoff date
+        let current_date = Local::now().naive_local();
+        let term_years = 30; // Assuming a 30-year loan term
+        let term_days = term_years * 365; // Convert years to days
+
+        let payoff_date = (current_date + Duration::days(term_days)).date().into();
+
+
+        (monthly_payment, total_interest_paid, payoff_date)
+    }
+
+    fn run(&self) {
+        let (monthly_payment, total_interest_paid, payoff_date) = self.calculate_mortgage();
+
+        let mut table = Table::new();
+        table.set_titles(Row::new(vec![
+            Cell::new("Loan Amount"),
+            Cell::new("Interest Rate"),
+            Cell::new("Loan Term"),
+            Cell::new("Monthly Payment"),
+            Cell::new("Total Interest Paid"),
+            Cell::new("Loan Payoff Date"),
+        ]));
+
+        table.add_row(Row::new(vec![
+            Cell::new(&formatcurrency(self.loan_amount)),
+            Cell::new(&format!("{:.2}%", self.interest_rate)),
+            Cell::new(&format!("{} years", self.term)),
+            Cell::new(&formatcurrency(monthly_payment)),
+            Cell::new(&formatcurrency(total_interest_paid)),
+            Cell::new(&payoff_date.format("%Y-%m-%d").to_string()),
+        ]));
+
+        table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+        table.printstd();
+    }
+}
+
+fn formatcurrency(amount: f64) -> String {
+    format!("${:.2}", amount)
+}
+
 fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
+        Command::Mortgage(mortgage) => {
+            mortgage.run();
+        }
         Command::DCF(dcf) => {
             let dcf_value = calculate_dcf(&dcf.cash_flows, dcf.discount_rate);
         
