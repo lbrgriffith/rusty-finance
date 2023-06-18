@@ -58,7 +58,48 @@ enum Command {
     DCF(DCF),
     /// Calculates mortgage payments, total interest paid, and loan payoff date
     Mortgage(Mortgage),
+    /// Calculates the weighted average of a series of numbers.
+    #[clap(name = "weighted-average")]
+    WeightedAverage(WeightedAverage),
 }
+
+#[derive(Parser, Debug)]
+struct WeightedAverage {
+    #[clap(short, long)]
+    numbers: String,
+
+    #[clap(short, long)]
+    weights: String,
+}
+
+impl WeightedAverage {
+    fn calculate(&self) -> Result<f64, &'static str> {
+        let numbers: Result<Vec<f64>, _> = self.numbers.split_whitespace().map(str::parse).collect();
+        let weights: Result<Vec<f64>, _> = self.weights.split_whitespace().map(str::parse).collect();
+
+        let numbers = numbers.map_err(|_| "Invalid numbers")?;
+        let weights = weights.map_err(|_| "Invalid weights")?;
+
+        if numbers.len() != weights.len() {
+            return Err("Number of numbers and weights should be the same.");
+        }
+
+        let mut sum = 0.0;
+        let mut total_weight = 0.0;
+
+        for (number, weight) in numbers.iter().zip(weights.iter()) {
+            sum += number * weight;
+            total_weight += weight;
+        }
+
+        if total_weight == 0.0 {
+            return Err("Total weight cannot be zero.");
+        }
+
+        Ok(sum / total_weight)
+    }
+}
+
 
 #[derive(Parser, Debug)]
 struct Mortgage {
@@ -526,6 +567,21 @@ fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
+        Command::WeightedAverage(average) => {
+            match average.calculate() {
+                Ok(result) => {
+                    let mut table = Table::new();
+                    table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+                    table.set_titles(row![Fb->"Weighted Average"]);
+
+                    let row = Row::new(vec![Cell::new_align(format!("{:.2}", result).as_str(), format::Alignment::RIGHT)]);
+
+                    table.add_row(row);
+                    table.printstd();
+                }
+                Err(err) => eprintln!("Error: {}", err),
+            }
+        }
         Command::Mortgage(mortgage) => {
             mortgage.run();
         }
