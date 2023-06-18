@@ -27,6 +27,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `loan-payment`: Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
 - `break-even-units`: Calculate the number of units a business needs to sell to break even.
 - `dcf`: Calculates the present value of future cash flows, considering the time value of money.
+- `mortgage`: Calculate mortgage payments, including the monthly payment amount, total interest paid, and the loan payoff date, taking into account the loan amount, interest rate, and loan term.
 
 ## Examples
 
@@ -409,6 +410,22 @@ cargo run -- dcf --discount-rate 0.1 1000 2000 3000
 +---------------+--------------------------+-----------+
 | 10.00%        | [1000.0, 2000.0, 3000.0] | $4,815.92 |
 +---------------+--------------------------+-----------+
+```
+
+## Mortgage Calculator
+Calculate mortgage payments, including the monthly payment amount, total interest paid, and the loan payoff date, taking into account the loan amount, interest rate, and loan term.
+
+```shell
+rusty-finance.exe mortgage --loan-amount 200000 --interest-rate 4.5 --term 30
+```
+
+### Result
+```
++-------------+---------------+-----------+-----------------+---------------------+------------------+
+| Loan Amount | Interest Rate | Loan Term | Monthly Payment | Total Interest Paid | Loan Payoff Date |
++-------------+---------------+-----------+-----------------+---------------------+------------------+
+| $200,000    | 4.50%         | 30 years  | $1,013.37       | $164,813.42         | 2053-06-10       |
++-------------+---------------+-----------+-----------------+---------------------+------------------+
 ```
 
 > **Thanks!**
