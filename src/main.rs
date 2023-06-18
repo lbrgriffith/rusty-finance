@@ -509,21 +509,17 @@ impl Mortgage {
         ]));
 
         table.add_row(Row::new(vec![
-            Cell::new(&formatcurrency(self.loan_amount)),
+            Cell::new(&format_currency(self.loan_amount)),
             Cell::new(&format!("{:.2}%", self.interest_rate)),
             Cell::new(&format!("{} years", self.term)),
-            Cell::new(&formatcurrency(monthly_payment)),
-            Cell::new(&formatcurrency(total_interest_paid)),
+            Cell::new(&format_currency(monthly_payment)),
+            Cell::new(&format_currency(total_interest_paid)),
             Cell::new(&payoff_date.format("%Y-%m-%d").to_string()),
         ]));
 
         table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
         table.printstd();
     }
-}
-
-fn formatcurrency(amount: f64) -> String {
-    format!("${:.2}", amount)
 }
 
 fn main() {
