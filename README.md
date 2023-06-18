@@ -27,7 +27,8 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `loan-payment`: Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
 - `break-even-units`: Calculate the number of units a business needs to sell to break even.
 - `dcf`: Calculates the present value of future cash flows, considering the time value of money.
-- `mortgage`: Calculate mortgage payments, including the monthly payment amount, total interest paid, and the loan payoff date, taking into account the loan amount, interest rate, and loan term.
+- `mortgage`: Calculate mortgage payments.
+- `weighted-average`: Calculate the weighted average of a series of numbers.
 
 ## Examples
 
@@ -426,6 +427,21 @@ rusty-finance.exe mortgage --loan-amount 200000 --interest-rate 4.5 --term 30
 +-------------+---------------+-----------+-----------------+---------------------+------------------+
 | $200,000    | 4.50%         | 30 years  | $1,013.37       | $164,813.42         | 2053-06-10       |
 +-------------+---------------+-----------+-----------------+---------------------+------------------+
+```
+
+## Weighted Average
+Calculate the weighted average of a series of numbers, where each number is multiplied by its corresponding weight.
+```shell
+cargo run -- weighted-average --numbers "10 20 30" --weights "0.2 0.3 0.5"
+``` 
+
+### Result
+```
++------------------+
+| Weighted Average |
++------------------+
+|            23.00 |
++------------------+
 ```
 
 > **Thanks!**
