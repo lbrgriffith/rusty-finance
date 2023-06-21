@@ -30,6 +30,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `mortgage`: Calculate mortgage payments.
 - `weighted-average`: Calculate the weighted average of a series of numbers.
 - `wacc`: Calculates the weighted average cost of capital
+- `dividend-yield`: Calculates the dividend yield of a stock by dividing the annual dividend per share by the stock's current price.
 
 ## Examples
 
@@ -465,6 +466,20 @@ rusty-finance wacc --cost-of-equity 0.10 --cost-of-debt 0.05 --tax-rate 0.30 --m
 +----------------------------+---------+
 | WACC                       | 7.83%   |
 +----------------------------+---------+
+```
+
+## Dividend Yield
+Calculates the dividend yield of a stock by dividing the annual dividend per share by the stock's current price.
+```shell
+./rusty-finance.exe dividend-yield --dividend 2.5 --price 50.0
+```
+### Result
+```
++----------+-------+--------------------+
+| Dividend | Price | Dividend Yield (%) |
++----------+-------+--------------------+
+| 2.50     | 50.00 | 5.00               |
++----------+-------+--------------------+
 ```
 
 > **Thanks!**
