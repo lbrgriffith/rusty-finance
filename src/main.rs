@@ -61,7 +61,76 @@ enum Command {
     /// Calculates the weighted average of a series of numbers.
     #[clap(name = "weighted-average")]
     WeightedAverage(WeightedAverage),
+    /// Calculates the weighted average cost of capital (WACC).
+    WACC(WACC)
 }
+
+#[derive(Parser, Debug)]
+struct WACC {
+    /// The cost of equity (Ke)
+    #[clap(long)]
+    cost_of_equity: f64,
+
+    /// The cost of debt (Kd)
+    #[clap(long)]
+    cost_of_debt: f64,
+
+    /// The tax rate
+    #[clap(long)]
+    tax_rate: f64,
+
+    /// The market value of equity (E)
+    #[clap(long)]
+    market_value_equity: f64,
+
+    /// The market value of debt (D)
+    #[clap(long)]
+    market_value_debt: f64,
+}
+
+fn calculate_wacc(opts: WACC) -> Result<(), &'static str> {
+    // Perform the WACC calculation
+    let wacc = (opts.cost_of_equity * opts.market_value_equity
+        + opts.cost_of_debt * (1.0 - opts.tax_rate) * opts.market_value_debt)
+        / (opts.market_value_equity + opts.market_value_debt);
+
+    // Create a new table
+    let mut table = Table::new();
+    table.set_titles(Row::new(vec![
+        Cell::new("Component"),
+        Cell::new("Value"),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Cost of Equity (Ke)"),
+        Cell::new_align(format!("{:.2}%", opts.cost_of_equity * 100.0).as_str(), format::Alignment::LEFT),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Cost of Debt (Kd)"),
+        Cell::new_align(format!("{:.2}%", opts.cost_of_debt * 100.0).as_str(), format::Alignment::LEFT),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Tax Rate"),
+        Cell::new_align(format!("{:.2}%", opts.tax_rate * 100.0).as_str(), format::Alignment::LEFT),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Market Value of Equity (E)"),
+        Cell::new_align(format!("{}", opts.market_value_equity).as_str(), format::Alignment::LEFT),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Market Value of Debt (D)"),
+        Cell::new_align(format!("{}", opts.market_value_debt).as_str(), format::Alignment::LEFT),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("WACC"),
+        Cell::new_align(format!("{:.2}%", wacc * 100.0).as_str(), format::Alignment::LEFT),
+    ]));
+
+    // Print the table
+    table.printstd();
+
+    Ok(())
+}
+
 
 #[derive(Parser, Debug)]
 struct WeightedAverage {
@@ -567,6 +636,11 @@ fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
+        Command::WACC(wacc) => {
+            if let Err(err) = calculate_wacc(wacc) {
+                eprintln!("Error: {}", err);
+            }
+        }
         Command::WeightedAverage(average) => {
             match average.calculate() {
                 Ok(result) => {
