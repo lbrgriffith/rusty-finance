@@ -31,6 +31,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `weighted-average`: Calculate the weighted average of a series of numbers.
 - `wacc`: Calculates the weighted average cost of capital
 - `dividend-yield`: Calculates the dividend yield of a stock by dividing the annual dividend per share by the stock's current price.
+- `return-on-equity`: Calculates the return on equity as a percentage,
 
 ## Examples
 
@@ -480,6 +481,21 @@ Calculates the dividend yield of a stock by dividing the annual dividend per sha
 +----------+-------+--------------------+
 | 2.50     | 50.00 | 5.00               |
 +----------+-------+--------------------+
+```
+
+## Return on Equity (ROE)
+Calculates the return on equity as a percentage, measuring the profitability of a company in relation to its shareholders' equity.
+```shell
+rusty-finance.exe return-on-equity --net-income 1000000 --equity 5000000
+```
+
+### Result
+```
++------------+------------+------------------+
+| Net Income | Equity     | Return on Equity |
++============+============+==================+
+| $1,000,000 | $5,000,000 | 20.00%           |
++------------+------------+------------------+
 ```
 
 > **Thanks!**
