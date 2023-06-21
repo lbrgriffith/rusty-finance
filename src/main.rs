@@ -65,7 +65,54 @@ enum Command {
     WACC(WACC),
     /// Calculates the dividend yield.
     DividendYield(DividendYield),
+    /// Calculates the return on equity (ROE).
+    ReturnOnEquity(ReturnOnEquity),
 }
+
+#[derive(Parser, Debug)]
+pub struct ReturnOnEquity {
+    /// Net Income
+    #[clap(short, long)]
+    net_income: f64,
+
+    /// Equity
+    #[clap(short, long)]
+    equity: f64,
+}
+
+impl ReturnOnEquity {
+    fn execute(&self) {
+        // Convert net_income and equity to Decimal
+        let net_income = Decimal::from_f64(self.net_income).unwrap();
+        let equity = Decimal::from_f64(self.equity).unwrap();
+
+        // Calculate the return on equity
+        let roe = (net_income / equity) * Decimal::from_f64(100.0).unwrap();
+
+        // Convert Decimal values back to f64 for formatting
+        let net_income_f64 = net_income.to_f64().unwrap();
+        let equity_f64 = equity.to_f64().unwrap();
+
+        // Create the table and add rows
+        let mut table = Table::new();
+        table.set_titles(Row::new(vec![
+            Cell::new("Net Income"),
+            Cell::new("Equity"),
+            Cell::new("Return on Equity"),
+        ]));
+        table.add_row(Row::new(vec![
+            Cell::new(&format_currency(net_income_f64)),
+            Cell::new(&format_currency(equity_f64)),
+            Cell::new(&format!("{:.2}%", roe)),
+        ]));
+
+        // Print the table
+        table.printstd();
+    }
+}
+
+
+
 
 #[derive(Parser, Debug)]
 struct DividendYield {
@@ -673,6 +720,7 @@ fn main() {
 
             table.printstd();
         }
+        Command::ReturnOnEquity(roe) => roe.execute(),
         Command::WACC(wacc) => {
             if let Err(err) = calculate_wacc(wacc) {
                 eprintln!("Error: {}", err);
