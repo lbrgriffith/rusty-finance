@@ -62,7 +62,24 @@ enum Command {
     #[clap(name = "weighted-average")]
     WeightedAverage(WeightedAverage),
     /// Calculates the weighted average cost of capital (WACC).
-    WACC(WACC)
+    WACC(WACC),
+    /// Calculates the dividend yield.
+    DividendYield(DividendYield),
+}
+
+#[derive(Parser, Debug)]
+struct DividendYield {
+    /// The dividend
+    #[clap(short, long)]
+    dividend: f64,
+
+    /// The price
+    #[clap(short, long)]
+    price: f64,
+}
+
+fn calculate_dividend_yield(dividend_yield: &DividendYield) -> f64 {
+    dividend_yield.dividend / dividend_yield.price
 }
 
 #[derive(Parser, Debug)]
@@ -636,6 +653,26 @@ fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.command {
+        Command::DividendYield(dividend_yield) => {
+            let result = calculate_dividend_yield(&dividend_yield);
+
+            let mut table = Table::new();
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+
+            table.set_titles(row![
+                "Dividend",
+                "Price",
+                "Dividend Yield (%)"
+            ]);
+
+            table.add_row(row![
+                format!("{:.2}", dividend_yield.dividend),
+                format!("{:.2}", dividend_yield.price),
+                format!("{:.2}", result * 100.0)
+            ]);
+
+            table.printstd();
+        }
         Command::WACC(wacc) => {
             if let Err(err) = calculate_wacc(wacc) {
                 eprintln!("Error: {}", err);
