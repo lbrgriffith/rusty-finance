@@ -29,6 +29,7 @@ To use Rusty Finance, you can run the executable and provide the desired command
 - `dcf`: Calculates the present value of future cash flows, considering the time value of money.
 - `mortgage`: Calculate mortgage payments.
 - `weighted-average`: Calculate the weighted average of a series of numbers.
+- `wacc`: Calculates the weighted average cost of capital
 
 ## Examples
 
@@ -442,6 +443,32 @@ cargo run -- weighted-average --numbers "10 20 30" --weights "0.2 0.3 0.5"
 +------------------+
 |            23.00 |
 +------------------+
+```
+
+## Weighted Average Cost of Capital
+Weighted Average Cost of Capital (WACC): Calculates the weighted average cost of capital, which represents the average rate of return a company needs to generate to satisfy its capital providers.
+
+```shell
+rusty-finance wacc --cost-of-equity 0.10 --cost-of-debt 0.05 --tax-rate 0.30 --market-value-equity 1000000 --market-value-debt 500000
+```
+
+### Result
+```
++----------------------------+---------+
+| Component                  | Value   |
++============================+=========+
+| Cost of Equity (Ke)        | 10.00%  |
++----------------------------+---------+
+| Cost of Debt (Kd)          | 5.00%   |
++----------------------------+---------+
+| Tax Rate                   | 30.00%  |
++----------------------------+---------+
+| Market Value of Equity (E) | 1000000 |
++----------------------------+---------+
+| Market Value of Debt (D)   | 500000  |
++----------------------------+---------+
+| WACC                       | 7.83%   |
++----------------------------+---------+
 ```
 
 > **Thanks!**
