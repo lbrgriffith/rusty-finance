@@ -1,12 +1,49 @@
 # Rusty Finance CLI
 
 ![Rust](https://img.shields.io/badge/Rust-Programming%20Language-orange?logo=rust)
+![Edition](https://img.shields.io/badge/Rust%20Edition-2021-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-Rusty Finance is a command-line tool for performing financial calculations. It supports various financial calculations such as simple interest, compound interest, present value, future value, net present value (NPV), amortization schedule, IRR, mode, and more.
+Rusty Finance is a modern command-line tool for performing financial calculations. It supports various financial calculations such as simple interest, compound interest, present value, future value, net present value (NPV), amortization schedule, IRR, mode, and more.
+
+## Features
+
+- 🚀 Built with modern Rust (edition 2021)
+- 🎨 Color-coded output for better readability
+- 📊 Beautiful tables for displaying results
+- 🔍 Comprehensive error handling and validation
+- 📋 Detailed help information for all commands
+- 📝 Extensive logging with configurable verbosity
+
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/rusty-finance.git
+cd rusty-finance
+
+# Build the project
+cargo build --release
+
+# The binary will be available at target/release/rusty-finance
+```
 
 ## Usage
 
-To use Rusty Finance, you can run the executable and provide the desired command and corresponding options as arguments. Here are the available commands:
+To use Rusty Finance, you can run the executable and provide the desired command and corresponding options as arguments. 
+
+```bash
+# Run with default verbosity
+rusty-finance <COMMAND> [OPTIONS]
+
+# Run with increased verbosity for debugging
+rusty-finance -v <COMMAND> [OPTIONS]
+
+# Get help for a specific command
+rusty-finance help <COMMAND>
+```
+
+Here are the available commands:
 
 - `interest`: Calculates simple interest.
 - `compound-interest`: Calculates compound interest.
