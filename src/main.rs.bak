@@ -1,0 +1,268 @@
+use anyhow::{Context, Result};
+use clap::Parser;
+use clap_verbosity_flag::{InfoLevel, Verbosity};
+use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
+use env_logger::Env;
+use log::{debug, info, warn};
+use owo_colors::OwoColorize;
+use rust_decimal::prelude::*;
+use thiserror::Error;
+
+/// Custom finance calculation errors
+#[derive(Error, Debug)]
+enum FinanceError {
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+    
+    #[error("Division by zero")]
+    DivisionByZero,
+}
+
+/// Financial calculation tool
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Opts {
+    /// Verbosity level for logging
+    #[clap(flatten)]
+    verbose: Verbosity<InfoLevel>,
+    
+    #[clap(subcommand)]
+    command: Command,
+}
+
+#[derive(Parser, Debug)]
+enum Command {
+    /// Calculates the dividend yield.
+    DividendYield(DividendYield),
+    
+    /// Calculates the return on equity (ROE).
+    ReturnOnEquity(ReturnOnEquity),
+}
+
+#[derive(Parser, Debug)]
+pub struct ReturnOnEquity {
+    /// Net Income
+    #[clap(short, long)]
+    net_income: f64,
+
+    /// Equity
+    #[clap(short, long)]
+    equity: f64,
+}
+
+impl ReturnOnEquity {
+    /// Calculate ROE and display results with error handling
+    fn execute(&self) -> Result<()> {
+        debug!("Calculating ROE with: {:?}", self);
+        
+        // Validate inputs are finite numbers
+        if !self.net_income.is_finite() {
+            return Err(FinanceError::InvalidInput(format!("Net income must be a valid number: {}", self.net_income)).into());
+        }
+        
+        if !self.equity.is_finite() {
+            return Err(FinanceError::InvalidInput(format!("Equity must be a valid number: {}", self.equity)).into());
+        }
+        
+        // Convert net_income and equity to Decimal with proper error handling
+        let net_income = Decimal::from_f64(self.net_income)
+            .ok_or_else(|| FinanceError::InvalidInput(format!("Invalid net income: {}", self.net_income)))?;
+        
+        let equity = Decimal::from_f64(self.equity)
+            .ok_or_else(|| FinanceError::InvalidInput(format!("Invalid equity: {}", self.equity)))?;
+            
+        // Validate inputs
+        if equity.is_zero() {
+            return Err(FinanceError::DivisionByZero.into());
+        }
+        
+        // Equity should be positive for a meaningful ROE calculation
+        if equity < Decimal::ZERO {
+            return Err(FinanceError::InvalidInput(format!("Equity should be positive: {}", self.equity)).into());
+        }
+
+        // Calculate the return on equity
+        let roe = (net_income / equity) * Decimal::from_f64(100.0).unwrap();
+        info!("Calculated ROE: {:.4}%", roe);
+
+        // Create the table with modern styling
+        let mut table = create_table(vec!["Net Income", "Equity", "Return on Equity"]);
+        
+        // Add data row with colorful formatting
+        table.add_row(vec![
+            Cell::new(&format_currency(self.net_income)),
+            Cell::new(&format_currency(self.equity)),
+            Cell::new(&format!("{:.2}%", roe)).fg(Color::Green).set_alignment(CellAlignment::Right),
+        ]);
+
+        // Print the table
+        println!("{table}");
+        
+        info!("ROE calculation completed successfully");
+        Ok(())
+    }
+}
+
+#[derive(Parser, Debug)]
+struct DividendYield {
+    /// The dividend
+    #[clap(short, long)]
+    dividend: f64,
+
+    /// The price
+    #[clap(short, long)]
+    price: f64,
+}
+
+/// Calculate dividend yield with proper error handling
+fn calculate_dividend_yield(dividend_yield: &DividendYield) -> Result<f64> {
+    // Validate inputs
+    if dividend_yield.price <= 0.0 {
+        return Err(FinanceError::InvalidInput(format!("Price must be positive: {}", dividend_yield.price)).into());
+    }
+    
+    // Dividend can be negative for stocks that lose money, but let's validate it's not NaN or infinite
+    if !dividend_yield.dividend.is_finite() {
+        return Err(FinanceError::InvalidInput(format!("Dividend must be a valid number: {}", dividend_yield.dividend)).into());
+    }
+    
+    // Calculate dividend yield
+    let result = dividend_yield.dividend / dividend_yield.price;
+    
+    debug!("Calculated dividend yield: {:.4}", result);
+    Ok(result)
+}
+
+/// Create a styled table with the given headers
+fn create_table(headers: Vec<&str>) -> Table {
+    let mut table = Table::new();
+    
+    // Set up table styling
+    table
+        .set_header(headers)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_width(80)
+        .load_preset(comfy_table::presets::UTF8_BORDERS_ONLY);
+    
+    table
+}
+
+/// Run the application with proper error handling
+fn run() -> Result<()> {
+    // Parse command line arguments
+    let opts: Opts = Opts::parse();
+    
+    // Configure logging based on verbosity
+    env_logger::Builder::from_env(Env::default().default_filter_or("info"))
+        .filter_level(opts.verbose.log_level_filter())
+        .init();
+    
+    info!("Starting rusty-finance");
+    debug!("Using options: {:?}", opts);
+    
+    // Execute the selected command
+    match opts.command {
+        Command::DividendYield(dividend_yield) => {
+            debug!("Calculating dividend yield with: {:?}", dividend_yield);
+            
+            // Calculate dividend yield with error handling
+            let result = calculate_dividend_yield(&dividend_yield)
+                .context("Failed to calculate dividend yield")?;
+            
+            info!("Calculated dividend yield: {:.4}", result);
+            
+            // Create and format table
+            let mut table = create_table(vec!["Dividend", "Price", "Dividend Yield (%)"]);
+
+            // Add data row
+            table.add_row(vec![
+                Cell::new(&format!("{:.2}", dividend_yield.dividend)),
+                Cell::new(&format!("{:.2}", dividend_yield.price)),
+                Cell::new(&format!("{:.2}%", result * 100.0)).fg(Color::Green),
+            ]);
+
+            // Print the table
+            println!("{table}");
+            
+            info!("Dividend yield calculation completed");
+            Ok(())
+        }
+        Command::ReturnOnEquity(roe) => {
+            roe.execute()
+        }
+    }
+}
+
+/// Format a number as currency with colored output
+fn format_currency(number: f64) -> String {
+    // Convert the f64 to a Decimal for accurate handling
+    let decimal = Decimal::from_f64(number)
+        .unwrap_or_else(|| {
+            warn!("Invalid number for currency formatting: {}", number);
+            Decimal::ZERO
+        });
+    
+    // Round to 2 decimal places
+    let rounded = decimal.round_dp(2);
+    
+    // Use the Decimal formatting functionality directly
+    let formatted = rounded.to_string();
+    
+    // Split into whole and decimal parts
+    let parts: Vec<&str> = formatted.split('.').collect();
+    let whole_part = parts[0];
+    let decimal_part = parts.get(1).map_or("00", |&s| {
+        if s.len() >= 2 { &s[0..2] } else { s }
+    });
+    
+    // Add commas to the whole part
+    let whole_with_commas = add_thousands_separators(whole_part);
+    
+    // Format as currency
+    if number >= 0.0 {
+        format!("${}.{}", whole_with_commas, decimal_part).green().to_string()
+    } else {
+        format!("${}.{}", whole_with_commas, decimal_part).red().to_string()
+    }
+}
+
+/// Add thousands separators (commas) to a number string
+fn add_thousands_separators(number_str: &str) -> String {
+    let is_negative = number_str.starts_with('-');
+    let digits = if is_negative { &number_str[1..] } else { number_str };
+    
+    let mut result = String::new();
+    let len = digits.len();
+    
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (len - i) % 3 == 0 {
+            result.push(',');
+        }
+        result.push(c);
+    }
+    
+    if is_negative {
+        format!("-{}", result)
+    } else {
+        result
+    }
+}
+
+/// Application entry point with error handling
+fn main() {
+    // Run the application and handle any errors
+    if let Err(err) = run() {
+        // Print the error and its causes
+        eprintln!("{}: {}", "Error".red().bold(), err);
+        
+        // Print the error chain for better debugging
+        let mut cause = err.source();
+        while let Some(source_err) = cause {
+            eprintln!("  {}: {}", "Caused by".yellow().bold(), source_err);
+            cause = source_err.source();
+        }
+        
+        // Exit with a non-zero status code
+        std::process::exit(1);
+    }
+}

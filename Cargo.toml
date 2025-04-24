@@ -6,8 +6,25 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4.26"
-clap = { version = "4.3.0", features = ["derive"] }
-prettytable-rs = "0.10.0"
-rust_decimal = "1.29.1"
-serde = "1.0.163"
+# Updated core dependencies
+chrono = "0.4.40"
+clap = { version = "4.5.37", features = ["derive"] }
+rust_decimal = "1.37.1"
+serde = "1.0.219"
+
+# Replacing prettytable-rs with a more modern table library
+comfy-table = "7.1.0"
+
+# Modern error handling
+thiserror = "1.0.57"
+anyhow = "1.0.81"
+
+# CLI styling and user experience
+owo-colors = "4.0.0"
+indicatif = "0.17.8"
+dialoguer = "0.11.0"
+
+# Better logging
+log = "0.4.21"
+env_logger = "0.11.3"
+clap-verbosity-flag = "2.2.0"

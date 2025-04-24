@@ -1,15 +1,32 @@
+use anyhow::{Context, Result};
+use chrono::{Local, Months};
 use clap::Parser;
-use prettytable::{Table, Row, Cell, format};
-use prettytable::row;
-use std::collections::HashMap;
+use clap_verbosity_flag::{InfoLevel, Verbosity};
+use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
+use env_logger::Env;
+use log::{debug, info, warn};
+use owo_colors::OwoColorize;
 use rust_decimal::prelude::*;
-use chrono::prelude::*;
-use chrono::Duration;
+use thiserror::Error;
+
+/// Custom finance calculation errors
+#[derive(Error, Debug)]
+enum FinanceError {
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+    
+    #[error("Division by zero")]
+    DivisionByZero,
+}
 
 /// Financial calculation tool
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Opts {
+    /// Verbosity level for logging
+    #[clap(flatten)]
+    verbose: Verbosity<InfoLevel>,
+    
     #[clap(subcommand)]
     command: Command,
 }
@@ -18,53 +35,80 @@ struct Opts {
 enum Command {
     /// Calculates simple interest.
     Interest(Interest),
+    
     /// Calculates compound interest.
     CompoundInterest(CompoundInterest),
+    
     /// Calculates present value.
     PresentValue(PresentValue),
+    
     /// Calculates future value.
     FutureValue(FutureValue),
+    
     /// Calculates net present value.
     NPV(NPV),
+    
     /// Calculates an amortization schedule.
     Amortization(Amortization),
+    
     /// Calculates the return on investment (ROI).
     ROI(ROI),
+    
     /// Calculates the average of a series of numbers.
     Average(Average),
+    
     /// Calculates the mode of a series of numbers.
     Mode(Mode),
+    
     /// Calculates the median of a series of numbers.
     Medium(Medium),
+    
     /// Calculates the payback period.
     PaybackPeriod(PaybackPeriod),
+    
     /// Performs break-even analysis.
     BreakEven(BreakEven),
+    
     /// Calculates the depreciation of an asset.
     Depreciation(Depreciation),
+    
     /// Calculates the internal rate of return (IRR).
     IRR(IRR),
+    
     /// Calculates the variance of a series of numbers.
     Variance(Variance),
+    
+    /// Calculates the standard deviation of a series of numbers.
     StandardDeviation(StandardDeviation),
+    
+    /// Calculates probability.
     Probability(Probability),
+    
     /// Calculates the expected return on an investment based on its risk and market factors.
     CAPM(CAPM),
+    
     /// Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
     LoanPayment(LoanPayment),
-    /// Calculate the number of units a business needs to sell to break even, taking into account fixed costs, variable costs per unit, and selling price per unit.
+    
+    /// Calculate the number of units a business needs to sell to break even.
     BreakEvenUnits(BreakEvenUnits),
-    ///  Implement a DCF calculator that calculates the present value of future cash flows, considering the time value of money.
+    
+    /// Calculate the discounted cash flow.
     DCF(DCF),
+    
     /// Calculates mortgage payments, total interest paid, and loan payoff date
     Mortgage(Mortgage),
+    
     /// Calculates the weighted average of a series of numbers.
     #[clap(name = "weighted-average")]
     WeightedAverage(WeightedAverage),
+    
     /// Calculates the weighted average cost of capital (WACC).
     WACC(WACC),
+    
     /// Calculates the dividend yield.
     DividendYield(DividendYield),
+    
     /// Calculates the return on equity (ROE).
     ReturnOnEquity(ReturnOnEquity),
 }
@@ -79,263 +123,6 @@ pub struct ReturnOnEquity {
     #[clap(short, long)]
     equity: f64,
 }
-
-impl ReturnOnEquity {
-    fn execute(&self) {
-        // Convert net_income and equity to Decimal
-        let net_income = Decimal::from_f64(self.net_income).unwrap();
-        let equity = Decimal::from_f64(self.equity).unwrap();
-
-        // Calculate the return on equity
-        let roe = (net_income / equity) * Decimal::from_f64(100.0).unwrap();
-
-        // Convert Decimal values back to f64 for formatting
-        let net_income_f64 = net_income.to_f64().unwrap();
-        let equity_f64 = equity.to_f64().unwrap();
-
-        // Create the table and add rows
-        let mut table = Table::new();
-        table.set_titles(Row::new(vec![
-            Cell::new("Net Income"),
-            Cell::new("Equity"),
-            Cell::new("Return on Equity"),
-        ]));
-        table.add_row(Row::new(vec![
-            Cell::new(&format_currency(net_income_f64)),
-            Cell::new(&format_currency(equity_f64)),
-            Cell::new(&format!("{:.2}%", roe)),
-        ]));
-
-        // Print the table
-        table.printstd();
-    }
-}
-
-
-
-
-#[derive(Parser, Debug)]
-struct DividendYield {
-    /// The dividend
-    #[clap(short, long)]
-    dividend: f64,
-
-    /// The price
-    #[clap(short, long)]
-    price: f64,
-}
-
-fn calculate_dividend_yield(dividend_yield: &DividendYield) -> f64 {
-    dividend_yield.dividend / dividend_yield.price
-}
-
-#[derive(Parser, Debug)]
-struct WACC {
-    /// The cost of equity (Ke)
-    #[clap(long)]
-    cost_of_equity: f64,
-
-    /// The cost of debt (Kd)
-    #[clap(long)]
-    cost_of_debt: f64,
-
-    /// The tax rate
-    #[clap(long)]
-    tax_rate: f64,
-
-    /// The market value of equity (E)
-    #[clap(long)]
-    market_value_equity: f64,
-
-    /// The market value of debt (D)
-    #[clap(long)]
-    market_value_debt: f64,
-}
-
-fn calculate_wacc(opts: WACC) -> Result<(), &'static str> {
-    // Perform the WACC calculation
-    let wacc = (opts.cost_of_equity * opts.market_value_equity
-        + opts.cost_of_debt * (1.0 - opts.tax_rate) * opts.market_value_debt)
-        / (opts.market_value_equity + opts.market_value_debt);
-
-    // Create a new table
-    let mut table = Table::new();
-    table.set_titles(Row::new(vec![
-        Cell::new("Component"),
-        Cell::new("Value"),
-    ]));
-    table.add_row(Row::new(vec![
-        Cell::new("Cost of Equity (Ke)"),
-        Cell::new_align(format!("{:.2}%", opts.cost_of_equity * 100.0).as_str(), format::Alignment::LEFT),
-    ]));
-    table.add_row(Row::new(vec![
-        Cell::new("Cost of Debt (Kd)"),
-        Cell::new_align(format!("{:.2}%", opts.cost_of_debt * 100.0).as_str(), format::Alignment::LEFT),
-    ]));
-    table.add_row(Row::new(vec![
-        Cell::new("Tax Rate"),
-        Cell::new_align(format!("{:.2}%", opts.tax_rate * 100.0).as_str(), format::Alignment::LEFT),
-    ]));
-    table.add_row(Row::new(vec![
-        Cell::new("Market Value of Equity (E)"),
-        Cell::new_align(format!("{}", opts.market_value_equity).as_str(), format::Alignment::LEFT),
-    ]));
-    table.add_row(Row::new(vec![
-        Cell::new("Market Value of Debt (D)"),
-        Cell::new_align(format!("{}", opts.market_value_debt).as_str(), format::Alignment::LEFT),
-    ]));
-    table.add_row(Row::new(vec![
-        Cell::new("WACC"),
-        Cell::new_align(format!("{:.2}%", wacc * 100.0).as_str(), format::Alignment::LEFT),
-    ]));
-
-    // Print the table
-    table.printstd();
-
-    Ok(())
-}
-
-
-#[derive(Parser, Debug)]
-struct WeightedAverage {
-    #[clap(short, long)]
-    numbers: String,
-
-    #[clap(short, long)]
-    weights: String,
-}
-
-impl WeightedAverage {
-    fn calculate(&self) -> Result<f64, &'static str> {
-        let numbers: Result<Vec<f64>, _> = self.numbers.split_whitespace().map(str::parse).collect();
-        let weights: Result<Vec<f64>, _> = self.weights.split_whitespace().map(str::parse).collect();
-
-        let numbers = numbers.map_err(|_| "Invalid numbers")?;
-        let weights = weights.map_err(|_| "Invalid weights")?;
-
-        if numbers.len() != weights.len() {
-            return Err("Number of numbers and weights should be the same.");
-        }
-
-        let mut sum = 0.0;
-        let mut total_weight = 0.0;
-
-        for (number, weight) in numbers.iter().zip(weights.iter()) {
-            sum += number * weight;
-            total_weight += weight;
-        }
-
-        if total_weight == 0.0 {
-            return Err("Total weight cannot be zero.");
-        }
-
-        Ok(sum / total_weight)
-    }
-}
-
-
-#[derive(Parser, Debug)]
-struct Mortgage {
-    /// The loan amount
-    #[clap(short, long, name = "loan-amount")] // Update the attribute to use kebab case
-    loan_amount: f64,
-
-    /// The annual interest rate
-    #[clap(short, long, name = "interest-rate")] // Update the attribute to use kebab case
-    interest_rate: f64,
-
-    /// The loan term in years
-    #[clap(short, long)]
-    term: i32,
-}
-
-
-#[derive(Parser, Debug)]
-struct DCF {
-    /// The discount rate
-    #[clap(short, long, name = "discount-rate")]
-    discount_rate: f64,
-
-    /// The cash flows for the investment/project
-    #[clap(name = "cash-flows")]
-    cash_flows: Vec<f64>,
-}
-
-
-fn calculate_dcf(cash_flows: &[f64], discount_rate: f64) -> f64 {
-    let present_values: Vec<f64> = cash_flows
-        .iter()
-        .enumerate()
-        .map(|(index, &cash_flow)| cash_flow / (1.0 + discount_rate).powf((index + 1) as f64))
-        .collect();
-
-    present_values.iter().sum()
-}
-
-
-#[derive(Parser, Debug)]
-struct BreakEvenUnits {
-    /// The fixed costs incurred by the business
-    #[clap(short, long, name = "fixed-costs")]
-    fixed_costs: f64,
-
-    /// The variable costs per unit
-    #[clap(short, long, name = "variable-costs")]
-    variable_costs: f64,
-
-    /// The price per unit of the product or service
-    #[clap(short, long, name = "price-per-unit")]
-    price_per_unit: f64,
-}
-
-fn calculate_break_even_units(fixed_costs: f64, variable_costs: f64, price_per_unit: f64) -> f64 {
-    fixed_costs / (price_per_unit - variable_costs)
-}
-
-#[derive(Parser, Debug)]
-struct LoanPayment {
-    /// The principal amount of the loan
-    #[clap(short, long)]
-    principal: f64,
-
-    /// The annual interest rate of the loan
-    #[clap(short, long)]
-    interest_rate: f64,
-
-    /// The loan term in years
-    #[clap(short, long)]
-    loan_term: f64,
-}
-
-impl LoanPayment {
-    fn calculate_loan_payment(&self) -> f64 {
-        // Perform loan payment calculation based on the input parameters
-        // Return the calculated loan payment amount
-        // You can use the formulas for loan payment calculations, such as the one below:
-        let n = self.loan_term * 12.0; // Number of monthly payments
-        let r = self.interest_rate / 100.0 / 12.0; // Monthly interest rate
-
-        let loan_payment = (self.principal * r) / (1.0 - (1.0 + r).powf(-n));
-
-        loan_payment
-    }
-}
-
-#[derive(Parser, Debug)]
-struct CAPM {
-    /// The risk-free rate
-    #[clap(short, long)]
-    risk_free_rate: f64,
-
-    /// The asset's beta coefficient
-    #[clap(short, long)]
-    beta: f64,
-
-    /// The expected return of the market
-    #[clap(short, long)]
-    market_return: f64,
-}
-
 
 #[derive(Parser, Debug)]
 struct Interest {
@@ -371,6 +158,59 @@ struct CompoundInterest {
     t: i32,
 }
 
+impl ReturnOnEquity {
+    /// Calculate ROE and display results with error handling
+    fn execute(&self) -> Result<()> {
+        debug!("Calculating ROE with: {:?}", self);
+        
+        // Validate inputs are finite numbers
+        if !self.net_income.is_finite() {
+            return Err(FinanceError::InvalidInput(format!("Net income must be a valid number: {}", self.net_income)).into());
+        }
+        
+        if !self.equity.is_finite() {
+            return Err(FinanceError::InvalidInput(format!("Equity must be a valid number: {}", self.equity)).into());
+        }
+        
+        // Convert net_income and equity to Decimal with proper error handling
+        let net_income = Decimal::from_f64(self.net_income)
+            .ok_or_else(|| FinanceError::InvalidInput(format!("Invalid net income: {}", self.net_income)))?;
+        
+        let equity = Decimal::from_f64(self.equity)
+            .ok_or_else(|| FinanceError::InvalidInput(format!("Invalid equity: {}", self.equity)))?;
+            
+        // Validate inputs
+        if equity.is_zero() {
+            return Err(FinanceError::DivisionByZero.into());
+        }
+        
+        // Equity should be positive for a meaningful ROE calculation
+        if equity < Decimal::ZERO {
+            return Err(FinanceError::InvalidInput(format!("Equity should be positive: {}", self.equity)).into());
+        }
+
+        // Calculate the return on equity
+        let roe = (net_income / equity) * Decimal::from_f64(100.0).unwrap();
+        info!("Calculated ROE: {:.4}%", roe);
+
+        // Create the table with modern styling
+        let mut table = create_table(vec!["Net Income", "Equity", "Return on Equity"]);
+        
+        // Add data row with colorful formatting
+        table.add_row(vec![
+            Cell::new(&format_currency(self.net_income)),
+            Cell::new(&format_currency(self.equity)),
+            Cell::new(&format!("{:.2}%", roe)).fg(Color::Green).set_alignment(CellAlignment::Right),
+        ]);
+
+        // Print the table
+        println!("{table}");
+        
+        info!("ROE calculation completed successfully");
+        Ok(())
+    }
+}
+
 #[derive(Parser, Debug)]
 struct PresentValue {
     /// The future value of the investment.
@@ -385,7 +225,6 @@ struct PresentValue {
     #[clap(short, long)]
     time: f64,
 }
-
 
 #[derive(Parser, Debug)]
 struct FutureValue {
@@ -402,6 +241,16 @@ struct FutureValue {
     time: f64,
 }
 
+#[derive(Parser, Debug)]
+struct DividendYield {
+    /// The dividend
+    #[clap(short, long)]
+    dividend: f64,
+
+    /// The price
+    #[clap(short, long)]
+    price: f64,
+}
 
 #[derive(Parser, Debug)]
 struct NPV {
@@ -437,6 +286,62 @@ struct Amortization {
     loan_term_years: i32,
 }
 
+/// Calculate present value
+fn calculate_present_value(future_value: f64, rate: f64, time: f64) -> Result<f64> {
+    if !future_value.is_finite() || !rate.is_finite() || !time.is_finite() {
+        return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+    }
+    
+    if rate < 0.0 {
+        return Err(FinanceError::InvalidInput("Rate must be positive".into()).into());
+    }
+    
+    if time < 0.0 {
+        return Err(FinanceError::InvalidInput("Time must be positive".into()).into());
+    }
+    
+    let result = future_value / (1.0 + rate).powf(time);
+    Ok(result)
+}
+
+/// Calculate future value
+fn calculate_future_value(present_value: f64, rate: f64, time: f64) -> Result<f64> {
+    if !present_value.is_finite() || !rate.is_finite() || !time.is_finite() {
+        return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+    }
+    
+    if rate < 0.0 {
+        return Err(FinanceError::InvalidInput("Rate must be positive".into()).into());
+    }
+    
+    if time < 0.0 {
+        return Err(FinanceError::InvalidInput("Time must be positive".into()).into());
+    }
+    
+    let result = present_value * (1.0 + rate).powf(time);
+    Ok(result)
+}
+
+/// Calculate dividend yield with proper error handling
+fn calculate_dividend_yield(dividend_yield: &DividendYield) -> Result<f64> {
+    // Validate inputs
+    if dividend_yield.price <= 0.0 {
+        return Err(FinanceError::InvalidInput(format!("Price must be positive: {}", dividend_yield.price)).into());
+    }
+    
+    // Dividend can be negative for stocks that lose money, but let's validate it's not NaN or infinite
+    if !dividend_yield.dividend.is_finite() {
+        return Err(FinanceError::InvalidInput(format!("Dividend must be a valid number: {}", dividend_yield.dividend)).into());
+    }
+    
+    // Calculate dividend yield
+    let result = dividend_yield.dividend / dividend_yield.price;
+    
+    debug!("Calculated dividend yield: {:.4}", result);
+    Ok(result)
+}
+
+/// Create a styled table with the given headers
 #[derive(Parser, Debug)]
 struct ROI {
     /// The net profit
@@ -464,15 +369,31 @@ struct Mode {
 
 #[derive(Parser, Debug)]
 struct Medium {
+    /// The numbers to calculate the median
     #[clap(name = "numbers", required = true)]
     numbers: Vec<f64>,
 }
 
+fn create_table(headers: Vec<&str>) -> Table {
+    let mut table = Table::new();
+    
+    // Set up table styling
+    table
+        .set_header(headers)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_width(80)
+        .load_preset(comfy_table::presets::UTF8_BORDERS_ONLY);
+    
+    table
+}
+
 #[derive(Parser, Debug)]
 struct PaybackPeriod {
+    /// The list of cash flows
     #[clap(short = 'c', long = "cash-flows", name = "cash-flows")]
     cash_flows: Vec<f64>,
 
+    /// The initial cost of the investment
     #[clap(short = 'i', long = "initial-cost", name = "initial-cost")]
     initial_cost: f64,
 }
@@ -511,53 +432,6 @@ struct Depreciation {
     depreciation_method: String,
 }
 
-impl Depreciation {
-    fn straight_line(&self) -> f64 {
-        (self.initial_value - self.salvage_value) / self.useful_life
-    }
-
-    fn double_declining_balance(&self) -> f64 {
-        let straight_line = self.straight_line();
-        let remaining_value = self.initial_value - straight_line;
-
-        (2.0 * remaining_value) / self.useful_life
-    }
-
-    // Add more functions for different types of depreciation
-
-    fn run(&self) {
-        match self.depreciation_method.as_str() {
-            "straight-line" => {
-                let straight_line_depreciation = self.straight_line();
-                let double_declining_balance_depreciation = self.double_declining_balance();
-
-                let mut table = Table::new();
-                table.set_titles(Row::new(vec![
-                    Cell::new("Depreciation Type"),
-                    Cell::new("Amount"),
-                ]));
-
-                table.add_row(Row::new(vec![
-                    Cell::new("Straight Line"),
-                    Cell::new(&format_currency(straight_line_depreciation)),
-                ]));
-
-                table.add_row(Row::new(vec![
-                    Cell::new("Double Declining Balance"),
-                    Cell::new(&format_currency(double_declining_balance_depreciation)),
-                ]));
-
-                // Add rows for other types of depreciation
-
-                table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-                table.printstd();
-            }
-            // Handle other types of depreciation methods here
-            _ => println!("Invalid depreciation method."),
-        }
-    }
-}
-
 #[derive(Parser, Debug)]
 struct IRR {
     /// The cash flows for the investment/project
@@ -565,45 +439,36 @@ struct IRR {
     cash_flows: Vec<f64>,
 }
 
-impl IRR {
-    fn execute(&self) {
-        match self.calculate_irr() {
-            Some(irr) => println!("Internal Rate of Return (IRR): {:.2}%", irr * 100.0),
-            None => println!("Unable to calculate the Internal Rate of Return (IRR)"),
-        }
-    }
-    fn calculate_irr(&self) -> Option<f64> {
-        const MAX_ITERATIONS: u32 = 100;
-        const PRECISION: f64 = 0.0001;
-
-        let mut guess = 0.1; // Initial guess for IRR
-        let mut iteration = 0;
-
-        loop {
-            let mut npv = 0.0;
-            let mut npv_derivative = 0.0;
-
-            for (index, cash_flow) in self.cash_flows.iter().enumerate() {
-                let power = (self.cash_flows.len() - index - 1) as f64;
-                npv += cash_flow / f64::powf(1.0 + guess, power);
-                npv_derivative += -power * cash_flow / f64::powf(1.0 + guess, power + 1.0);
-            }
-
-            let new_guess = guess - npv / npv_derivative;
-
-            if (guess - new_guess).abs() < PRECISION {
-                return Some(new_guess);
-            }
-
-            guess = new_guess;
-            iteration += 1;
-
-            if iteration > MAX_ITERATIONS {
-                break;
-            }
-        }
-
-        None // Unable to converge within the maximum number of iterations
+/// Format a number as currency with colored output
+fn format_currency(number: f64) -> String {
+    // Convert the f64 to a Decimal for accurate handling
+    let decimal = Decimal::from_f64(number)
+        .unwrap_or_else(|| {
+            warn!("Invalid number for currency formatting: {}", number);
+            Decimal::ZERO
+        });
+    
+    // Round to 2 decimal places
+    let rounded = decimal.round_dp(2);
+    
+    // Use the Decimal formatting functionality directly
+    let formatted = rounded.to_string();
+    
+    // Split into whole and decimal parts
+    let parts: Vec<&str> = formatted.split('.').collect();
+    let whole_part = parts[0];
+    let decimal_part = parts.get(1).map_or("00", |&s| {
+        if s.len() >= 2 { &s[0..2] } else { s }
+    });
+    
+    // Add commas to the whole part
+    let whole_with_commas = add_thousands_separators(whole_part);
+    
+    // Format as currency
+    if number >= 0.0 {
+        format!("${}.{}", whole_with_commas, decimal_part).green().to_string()
+    } else {
+        format!("${}.{}", whole_with_commas, decimal_part).red().to_string()
     }
 }
 
@@ -632,696 +497,1233 @@ struct Probability {
     trials: u32,
 }
 
-fn calculate_probability(successes: u32, trials: u32) -> f64 {
-    (successes as f64) / (trials as f64)
+#[derive(Parser, Debug)]
+struct CAPM {
+    /// The risk-free rate
+    #[clap(short, long)]
+    risk_free_rate: f64,
+
+    /// The asset's beta coefficient
+    #[clap(short, long)]
+    beta: f64,
+
+    /// The expected return of the market
+    #[clap(short, long)]
+    market_return: f64,
 }
 
-fn calculate_capm(risk_free_rate: f64, beta: f64, market_return: f64) -> f64 {
-    risk_free_rate + beta * (market_return - risk_free_rate)
-}
-
-impl Mortgage {
-    fn calculate_mortgage(&self) -> (f64, f64, NaiveDate) {
-        // Convert interest rate from annual to monthly
-        let monthly_interest_rate = self.interest_rate / 12.0 / 100.0;
-
-        // Convert loan term from years to months
-        let loan_term_months = self.term * 12;
-
-        // Calculate monthly payment
-        let monthly_payment = (self.loan_amount * monthly_interest_rate)
-            / (1.0 - (1.0 + monthly_interest_rate).powi(-loan_term_months));
-
-        // Calculate total payment
-        let total_payment = monthly_payment * loan_term_months as f64;
-
-        // Calculate total interest paid
-        let total_interest_paid = total_payment - self.loan_amount;
-
-        // Calculate loan payoff date
-        let current_date = Local::now().naive_local();
-        let term_years = 30; // Assuming a 30-year loan term
-        let term_days = term_years * 365; // Convert years to days
-
-        let payoff_date = (current_date + Duration::days(term_days)).date().into();
-
-
-        (monthly_payment, total_interest_paid, payoff_date)
+/// Add thousands separators (commas) to a number string
+fn add_thousands_separators(number_str: &str) -> String {
+    let is_negative = number_str.starts_with('-');
+    let digits = if is_negative { &number_str[1..] } else { number_str };
+    
+    let mut result = String::new();
+    let len = digits.len();
+    
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (len - i) % 3 == 0 {
+            result.push(',');
+        }
+        result.push(c);
     }
-
-    fn run(&self) {
-        let (monthly_payment, total_interest_paid, payoff_date) = self.calculate_mortgage();
-
-        let mut table = Table::new();
-        table.set_titles(Row::new(vec![
-            Cell::new("Loan Amount"),
-            Cell::new("Interest Rate"),
-            Cell::new("Loan Term"),
-            Cell::new("Monthly Payment"),
-            Cell::new("Total Interest Paid"),
-            Cell::new("Loan Payoff Date"),
-        ]));
-
-        table.add_row(Row::new(vec![
-            Cell::new(&format_currency(self.loan_amount)),
-            Cell::new(&format!("{:.2}%", self.interest_rate)),
-            Cell::new(&format!("{} years", self.term)),
-            Cell::new(&format_currency(monthly_payment)),
-            Cell::new(&format_currency(total_interest_paid)),
-            Cell::new(&payoff_date.format("%Y-%m-%d").to_string()),
-        ]));
-
-        table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-        table.printstd();
+    
+    if is_negative {
+        format!("-{}", result)
+    } else {
+        result
     }
 }
 
-fn main() {
+#[derive(Parser, Debug)]
+struct LoanPayment {
+    /// The principal amount of the loan
+    #[clap(short, long)]
+    principal: f64,
+
+    /// The annual interest rate of the loan
+    #[clap(short, long)]
+    interest_rate: f64,
+
+    /// The loan term in years
+    #[clap(short, long)]
+    loan_term: f64,
+}
+
+#[derive(Parser, Debug)]
+struct BreakEvenUnits {
+    /// The fixed costs incurred by the business
+    #[clap(short, long, name = "fixed-costs")]
+    fixed_costs: f64,
+
+    /// The variable costs per unit
+    #[clap(short, long, name = "variable-costs")]
+    variable_costs: f64,
+
+    /// The price per unit of the product or service
+    #[clap(short, long, name = "price-per-unit")]
+    price_per_unit: f64,
+}
+
+#[derive(Parser, Debug)]
+struct DCF {
+    /// The discount rate
+    #[clap(short, long, name = "discount-rate")]
+    discount_rate: f64,
+
+    /// The cash flows for the investment/project
+    #[clap(name = "cash-flows")]
+    cash_flows: Vec<f64>,
+}
+
+#[derive(Parser, Debug)]
+struct Mortgage {
+    /// The loan amount
+    #[clap(short, long, name = "loan-amount")]
+    loan_amount: f64,
+
+    /// The annual interest rate
+    #[clap(short, long, name = "interest-rate")]
+    interest_rate: f64,
+
+    /// The loan term in years
+    #[clap(short, long)]
+    term: i32,
+}
+
+#[derive(Parser, Debug)]
+struct WeightedAverage {
+    /// The numbers to calculate the weighted average of
+    #[clap(short, long)]
+    numbers: String,
+
+    /// The weights for each number
+    #[clap(short, long)]
+    weights: String,
+}
+
+#[derive(Parser, Debug)]
+struct WACC {
+    /// The cost of equity (Ke)
+    #[clap(long)]
+    cost_of_equity: f64,
+
+    /// The cost of debt (Kd)
+    #[clap(long)]
+    cost_of_debt: f64,
+
+    /// The tax rate
+    #[clap(long)]
+    tax_rate: f64,
+
+    /// The market value of equity (E)
+    #[clap(long)]
+    market_value_equity: f64,
+
+    /// The market value of debt (D)
+    #[clap(long)]
+    market_value_debt: f64,
+}
+
+/// Run the application with proper error handling
+fn run() -> Result<()> {
+    // Parse command line arguments
     let opts: Opts = Opts::parse();
-
+    
+    // Configure logging based on verbosity
+    env_logger::Builder::from_env(Env::default().default_filter_or("info"))
+        .filter_level(opts.verbose.log_level_filter())
+        .init();
+    
+    info!("Starting rusty-finance");
+    debug!("Using options: {:?}", opts);
+    
+    // Execute the selected command
     match opts.command {
-        Command::DividendYield(dividend_yield) => {
-            let result = calculate_dividend_yield(&dividend_yield);
-
-            let mut table = Table::new();
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-
-            table.set_titles(row![
-                "Dividend",
-                "Price",
-                "Dividend Yield (%)"
-            ]);
-
-            table.add_row(row![
-                format!("{:.2}", dividend_yield.dividend),
-                format!("{:.2}", dividend_yield.price),
-                format!("{:.2}", result * 100.0)
-            ]);
-
-            table.printstd();
-        }
-        Command::ReturnOnEquity(roe) => roe.execute(),
-        Command::WACC(wacc) => {
-            if let Err(err) = calculate_wacc(wacc) {
-                eprintln!("Error: {}", err);
-            }
-        }
-        Command::WeightedAverage(average) => {
-            match average.calculate() {
-                Ok(result) => {
-                    let mut table = Table::new();
-                    table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-                    table.set_titles(row![Fb->"Weighted Average"]);
-
-                    let row = Row::new(vec![Cell::new_align(format!("{:.2}", result).as_str(), format::Alignment::RIGHT)]);
-
-                    table.add_row(row);
-                    table.printstd();
-                }
-                Err(err) => eprintln!("Error: {}", err),
-            }
-        }
-        Command::Mortgage(mortgage) => {
-            mortgage.run();
-        }
-        Command::DCF(dcf) => {
-            let dcf_value = calculate_dcf(&dcf.cash_flows, dcf.discount_rate);
-        
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Discount Rate"),
-                Cell::new("Cash Flows"),
-                Cell::new("DCF Value"),
-            ]));
-            table.add_row(Row::new(vec![
-                Cell::new(&format!("{:.2}%", dcf.discount_rate * 100.0)),
-                Cell::new(&format!("{:?}", dcf.cash_flows)),
-                Cell::new(&format_currency(dcf_value)),
-            ]));
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
-        }                
-        Command::BreakEvenUnits(break_even_units) => {
-            let break_even_point = calculate_break_even_units(break_even_units.fixed_costs, break_even_units.variable_costs, break_even_units.price_per_unit);
-        
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Metric"),
-                Cell::new("Value"),
-            ]));
-            table.add_row(Row::new(vec![
-                Cell::new("Break-Even Point (Units)"),
-                Cell::new(&break_even_point.to_string()),
-            ]));
-        
-            table.printstd();
-        }        
-        Command::LoanPayment(loan_payment) => {
-            let payment_amount = loan_payment.calculate_loan_payment();
-        
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Principal"),
-                Cell::new("Interest Rate"),
-                Cell::new("Loan Term"),
-                Cell::new("Monthly Payment"),
-            ]));
-        
-            table.add_row(Row::new(vec![
-                Cell::new(&format_currency(loan_payment.principal)),
-                Cell::new(&format!("{:.2}%", loan_payment.interest_rate)),
-                Cell::new(&format!("{:.0} years", loan_payment.loan_term)),
-                Cell::new(&format_currency(payment_amount)),
-            ]));
-        
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
-        }
-        Command::CAPM(capm) => {
-            let expected_return = calculate_capm(capm.risk_free_rate, capm.beta, capm.market_return);
-
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Risk-Free Rate"),
-                Cell::new("Beta"),
-                Cell::new("Market Return"),
-                Cell::new("Expected Return"),
-            ]));
-
-            table.add_row(Row::new(vec![
-                Cell::new(&format!("{:.2}%", capm.risk_free_rate * 100.0)),
-                Cell::new(&capm.beta.to_string()),
-                Cell::new(&format!("{:.2}%", capm.market_return * 100.0)),
-                Cell::new(&format!("{:.2}%", expected_return * 100.0)),
-            ]));
-
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
-        }
-        Command::Probability(probability) => {
-            let successes = probability.successes;
-            let trials = probability.trials;
-            let result = calculate_probability(successes, trials);
-
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Successes"),
-                Cell::new("Trials"),
-                Cell::new("Probability"),
-            ]));
-
-            table.add_row(Row::new(vec![
-                Cell::new(&successes.to_string()),
-                Cell::new(&trials.to_string()),
-                Cell::new(&format!("{:.2}%", result * 100.0)),
-            ]));
-
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
-        }
-        Command::IRR(irr) => {
-            irr.execute();
-        }
-        Command::StandardDeviation(standard_deviation) => {
-            let numbers = standard_deviation.numbers;
-            let result = calculate_standard_deviation(&numbers);
-
-            match result {
-                Some(standard_deviation) => {
-                    println!("Standard Deviation: {}", standard_deviation);
-                }
-                None => {
-                    println!("Error: Standard deviation calculation requires a data set with at least 2 numbers.");
-                }
-            }
-        }
         Command::Interest(interest) => {
-            let Interest { principal, rate, time } = interest;
-            let result = principal * rate * time;
-
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Principal"),
-                Cell::new("Rate"),
-                Cell::new("Time"),
-                Cell::new("Simple Interest"),
-            ]));
-
-            let formatted_principal = format_currency(principal);
-            let formatted_result = format_currency(result);
-
-            table.add_row(Row::new(vec![
-                Cell::new(&formatted_principal),
-                Cell::new(&rate.to_string()),
-                Cell::new(&time.to_string()),
-                Cell::new(&formatted_result),
-            ]));
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
-        }
-        Command::CompoundInterest(compound_interest) => {
-            let CompoundInterest { principal, rate, n, t } = compound_interest;
-            let mut amount = principal;
-
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Year"),
-                Cell::new("Amount"),
-            ]));
-
-            for year in 1..=t {
-                amount *= 1.0 + (rate / n as f64);
-                table.add_row(Row::new(vec![
-                    Cell::new(&year.to_string()),
-                    Cell::new(&format_currency(amount)),
-                ]));
+            debug!("Calculating simple interest with: {:?}", interest);
+            
+            // Validate inputs
+            if !interest.principal.is_finite() || !interest.rate.is_finite() || !interest.time.is_finite() {
+                return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
             }
-
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
+            
+            if interest.principal < 0.0 {
+                return Err(FinanceError::InvalidInput("Principal must be positive".into()).into());
+            }
+            
+            if interest.rate < 0.0 {
+                return Err(FinanceError::InvalidInput("Rate must be positive".into()).into());
+            }
+            
+            if interest.time < 0.0 {
+                return Err(FinanceError::InvalidInput("Time must be positive".into()).into());
+            }
+            
+            // Calculate simple interest
+            let result = interest.principal * interest.rate * interest.time;
+            info!("Calculated simple interest: {:.4}", result);
+            
+            // Create and format table
+            let mut table = create_table(vec!["Principal", "Rate", "Time", "Simple Interest"]);
+            
+            // Add data row
+            table.add_row(vec![
+                Cell::new(&format_currency(interest.principal)),
+                Cell::new(&format!("{:.2}%", interest.rate * 100.0)),
+                Cell::new(&format!("{:.2} years", interest.time)),
+                Cell::new(&format_currency(result)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Simple interest calculation completed");
+            Ok(())
         }
-        Command::PresentValue(args) => {
-            let result = calculate_present_value(args.future_value, args.rate, args.time);
-        
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Future Value"),
-                Cell::new("Rate"),
-                Cell::new("Time"),
-                Cell::new("Present Value"),
-            ]));
+        Command::CompoundInterest(ci) => {
+            debug!("Calculating compound interest with: {:?}", ci);
+            
+            // Validate inputs
+            if !ci.principal.is_finite() || !ci.rate.is_finite() {
+                return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+            }
+            
+            if ci.principal < 0.0 {
+                return Err(FinanceError::InvalidInput("Principal must be positive".into()).into());
+            }
+            
+            if ci.rate < 0.0 {
+                return Err(FinanceError::InvalidInput("Rate must be positive".into()).into());
+            }
+            
+            if ci.n <= 0 {
+                return Err(FinanceError::InvalidInput("Compounding periods must be positive".into()).into());
+            }
+            
+            if ci.t <= 0 {
+                return Err(FinanceError::InvalidInput("Time must be positive".into()).into());
+            }
+            
+            // Create and format table
+            let mut table = create_table(vec!["Year", "Amount"]);
+            
+            // Calculate compound interest for each year
+            let mut amount = ci.principal;
+            let rate_per_period = ci.rate / ci.n as f64;
+            
+            for year in 1..=ci.t {
+                for _ in 0..ci.n {
+                    amount *= 1.0 + rate_per_period;
+                }
+                
+                table.add_row(vec![
+                    Cell::new(&format!("{}", year)),
+                    Cell::new(&format_currency(amount)).fg(Color::Green),
+                ]);
+            }
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Compound interest calculation completed");
+            Ok(())
+        }
+        Command::DividendYield(dividend_yield) => {
+            debug!("Calculating dividend yield with: {:?}", dividend_yield);
+            
+            // Calculate dividend yield with error handling
+            let result = calculate_dividend_yield(&dividend_yield)
+                .context("Failed to calculate dividend yield")?;
+            
+            info!("Calculated dividend yield: {:.4}", result);
+            
+            // Create and format table
+            let mut table = create_table(vec!["Dividend", "Price", "Dividend Yield (%)"]);
 
-            table.add_row(Row::new(vec![
-                Cell::new(&format_currency(args.future_value)),
-                Cell::new(&args.rate.to_string()),
-                Cell::new(&args.time.to_string()),
-                Cell::new(&format_currency(result)),
-            ]));
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
-        }        
-        Command::FutureValue(args) => {
-            let result = calculate_future_value(args.present_value, args.rate, args.time);
-        
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Present Value"),
-                Cell::new("Rate"),
-                Cell::new("Time"),
-                Cell::new("Future Value"),
-            ]));
-            table.add_row(Row::new(vec![
-                Cell::new(&format_currency(args.present_value)),
-                Cell::new(&args.rate.to_string()),
-                Cell::new(&args.time.to_string()),
-                Cell::new(&format_currency(result)),
-            ]));
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
-        }        
+            // Add data row
+            table.add_row(vec![
+                Cell::new(&format!("{:.2}", dividend_yield.dividend)),
+                Cell::new(&format!("{:.2}", dividend_yield.price)),
+                Cell::new(&format!("{:.2}%", result * 100.0)).fg(Color::Green),
+            ]);
+
+            // Print the table
+            println!("{table}");
+            
+            info!("Dividend yield calculation completed");
+            Ok(())
+        }
+        Command::PresentValue(pv) => {
+            debug!("Calculating present value with: {:?}", pv);
+            
+            // Calculate present value with error handling
+            let result = calculate_present_value(pv.future_value, pv.rate, pv.time)
+                .context("Failed to calculate present value")?;
+            
+            info!("Calculated present value: {:.4}", result);
+            
+            // Create and format table
+            let mut table = create_table(vec!["Future Value", "Rate", "Time", "Present Value"]);
+            
+            // Add data row
+            table.add_row(vec![
+                Cell::new(&format_currency(pv.future_value)),
+                Cell::new(&format!("{:.2}%", pv.rate * 100.0)),
+                Cell::new(&format!("{:.2} years", pv.time)),
+                Cell::new(&format_currency(result)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Present value calculation completed");
+            Ok(())
+        }
+        Command::FutureValue(fv) => {
+            debug!("Calculating future value with: {:?}", fv);
+            
+            // Calculate future value with error handling
+            let result = calculate_future_value(fv.present_value, fv.rate, fv.time)
+                .context("Failed to calculate future value")?;
+            
+            info!("Calculated future value: {:.4}", result);
+            
+            // Create and format table
+            let mut table = create_table(vec!["Present Value", "Rate", "Time", "Future Value"]);
+            
+            // Add data row
+            table.add_row(vec![
+                Cell::new(&format_currency(fv.present_value)),
+                Cell::new(&format!("{:.2}%", fv.rate * 100.0)),
+                Cell::new(&format!("{:.2} years", fv.time)),
+                Cell::new(&format_currency(result)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Future value calculation completed");
+            Ok(())
+        }
         Command::NPV(npv) => {
-            let NPV { initial_investment, cash_inflow, discount_rate, lifespan } = npv;
-            let mut npv_value = -initial_investment;
-        
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Year"),
-                Cell::new("Cash Inflow"),
-                Cell::new("Discounted Cash Flow"),
-            ]));
-        
-            for year in 1..=lifespan {
-                let discounted_cash_flow = cash_inflow / (1.0 + discount_rate).powf(year as f64);
-                npv_value += discounted_cash_flow;
-        
-                table.add_row(Row::new(vec![
-                    Cell::new(&year.to_string()),
-                    Cell::new(&format_currency(cash_inflow)),
-                    Cell::new(&format_currency(discounted_cash_flow)),
-                ]));
+            debug!("Calculating NPV with: {:?}", npv);
+            
+            // Validate inputs
+            if !npv.initial_investment.is_finite() || !npv.cash_inflow.is_finite() || !npv.discount_rate.is_finite() {
+                return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
             }
-        
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
-        
-            println!("Net Present Value (NPV): {}", format_currency(npv_value));
-        }
-        Command::Amortization(args) => {
-            let loan_amount = args.loan_amount;
-            let annual_interest_rate = args.annual_interest_rate;
-            let loan_term_years = args.loan_term_years;
-        
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Month"),
-                Cell::new("Principal Payment"),
-                Cell::new("Interest Payment"),
-                Cell::new("Remaining Balance"),
-            ]));
-        
-            calculate_amortization_schedule(loan_amount, annual_interest_rate, loan_term_years, &mut table);
-        
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
+            
+            if npv.initial_investment < 0.0 {
+                return Err(FinanceError::InvalidInput("Initial investment must be positive".into()).into());
+            }
+            
+            if npv.discount_rate < 0.0 {
+                return Err(FinanceError::InvalidInput("Discount rate must be positive".into()).into());
+            }
+            
+            if npv.lifespan <= 0 {
+                return Err(FinanceError::InvalidInput("Lifespan must be positive".into()).into());
+            }
+            
+            // Calculate NPV
+            let mut npv_value = -npv.initial_investment;
+            
+            // Create and format table
+            let mut table = create_table(vec!["Year", "Cash Inflow", "Discounted Cash Flow"]);
+            
+            // Calculate and display each year's discounted cash flow
+            for year in 1..=npv.lifespan {
+                let discounted_cash_flow = npv.cash_inflow / (1.0 + npv.discount_rate).powf(year as f64);
+                npv_value += discounted_cash_flow;
+                
+                table.add_row(vec![
+                    Cell::new(&format!("{}", year)),
+                    Cell::new(&format_currency(npv.cash_inflow)),
+                    Cell::new(&format_currency(discounted_cash_flow)),
+                ]);
+            }
+            
+            // Print the table
+            println!("{table}");
+            
+            // Print the net present value
+            println!("\n{}: {}", 
+                "Net Present Value (NPV)".bold(), 
+                format_currency(npv_value)
+            );
+            
+            info!("NPV calculation completed. NPV: {:.2}", npv_value);
+            Ok(())
         }
         Command::ROI(roi) => {
-            let ROI { net_profit, cost_of_investment } = roi;
-            let roi_value = (net_profit / cost_of_investment) * 100.0;
-
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Net Profit"),
-                Cell::new("Cost of Investment"),
-                Cell::new("ROI"),
-            ]));
-            table.add_row(Row::new(vec![
-                Cell::new(&format_currency(net_profit)),
-                Cell::new(&format_currency(cost_of_investment)),
-                Cell::new(&format!("{:.2}%", roi_value)),
-            ]));
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
-        } 
-        Command::Average(average) => {
-            let Average { numbers } = average;
-            let result = calculate_average(&numbers);
-
-            if let Some(average) = result {
-                // Printing the result as a pretty table
-                let mut table = Table::new();
-                table.set_titles(Row::new(vec![
-                    Cell::new("Number"),
-                ]));
-
-                for number in &numbers {
-                    table.add_row(Row::new(vec![
-                        Cell::new(&number.to_string()),
-                    ]));
-                }
-
-                table.add_row(Row::new(vec![
-                    Cell::new("Average"),
-                    Cell::new(&average.to_string()),
-                ]));
-
-                table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-                table.printstd();
+            debug!("Calculating ROI with: {:?}", roi);
+            
+            // Validate inputs
+            if !roi.net_profit.is_finite() || !roi.cost_of_investment.is_finite() {
+                return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+            }
+            
+            if roi.cost_of_investment == 0.0 {
+                return Err(FinanceError::DivisionByZero.into());
+            }
+            
+            // Calculate ROI
+            let roi_value = (roi.net_profit / roi.cost_of_investment) * 100.0;
+            info!("Calculated ROI: {:.4}%", roi_value);
+            
+            // Create and format table
+            let mut table = create_table(vec!["Net Profit", "Cost of Investment", "ROI"]);
+            
+            // Add data row with color coding based on ROI value
+            let roi_cell = if roi_value >= 0.0 {
+                Cell::new(&format!("{:.2}%", roi_value)).fg(Color::Green)
             } else {
-                println!("Error: Invalid input. Please provide a list of numbers.");
+                Cell::new(&format!("{:.2}%", roi_value)).fg(Color::Red)
+            };
+            
+            table.add_row(vec![
+                Cell::new(&format_currency(roi.net_profit)),
+                Cell::new(&format_currency(roi.cost_of_investment)),
+                roi_cell,
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("ROI calculation completed");
+            Ok(())
+        }
+        Command::Amortization(amortization) => {
+            debug!("Calculating amortization schedule with: {:?}", amortization);
+            
+            // Validate inputs
+            if !amortization.loan_amount.is_finite() || !amortization.annual_interest_rate.is_finite() {
+                return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
             }
-        }   
+            
+            if amortization.loan_amount <= 0.0 {
+                return Err(FinanceError::InvalidInput("Loan amount must be positive".into()).into());
+            }
+            
+            if amortization.annual_interest_rate <= 0.0 {
+                return Err(FinanceError::InvalidInput("Interest rate must be positive".into()).into());
+            }
+            
+            if amortization.loan_term_years <= 0 {
+                return Err(FinanceError::InvalidInput("Loan term must be positive".into()).into());
+            }
+            
+            // Calculate amortization schedule
+            let monthly_interest_rate = amortization.annual_interest_rate / 12.0;
+            let total_payments = amortization.loan_term_years * 12;
+            
+            // Calculate monthly payment
+            let monthly_payment = (monthly_interest_rate * amortization.loan_amount) / 
+                (1.0 - (1.0 + monthly_interest_rate).powf(-total_payments as f64));
+            
+            // Create and format table
+            let mut table = create_table(vec!["Month", "Principal", "Interest", "Remaining Balance"]);
+            
+            // Calculate amortization schedule
+            let mut remaining_balance = amortization.loan_amount;
+            
+            for month in 1..=total_payments {
+                let interest_payment = monthly_interest_rate * remaining_balance;
+                let principal_payment = monthly_payment - interest_payment;
+                remaining_balance -= principal_payment;
+                
+                // Add row to table (every 12 months to avoid huge output)
+                if month % 12 == 0 || month == 1 || month == total_payments {
+                    table.add_row(vec![
+                        Cell::new(&format!("{}", month)),
+                        Cell::new(&format_currency(principal_payment)),
+                        Cell::new(&format_currency(interest_payment)),
+                        Cell::new(&format_currency(remaining_balance)),
+                    ]);
+                }
+            }
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Amortization calculation completed");
+            Ok(())
+        }
+        Command::Average(average) => {
+            debug!("Calculating average with: {:?}", average);
+            
+            if average.numbers.is_empty() {
+                return Err(FinanceError::InvalidInput("No numbers provided".into()).into());
+            }
+            
+            // Calculate average
+            let sum: f64 = average.numbers.iter().sum();
+            let avg = sum / average.numbers.len() as f64;
+            
+            // Create and format table
+            let mut table = create_table(vec!["Number"]);
+            
+            // Add each number to the table
+            for number in &average.numbers {
+                table.add_row(vec![
+                    Cell::new(&format!("{:.2}", number)),
+                ]);
+            }
+            
+            // Add average row
+            table.add_row(vec![
+                Cell::new(&format!("Average: {:.2}", avg)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Average calculation completed: {:.4}", avg);
+            Ok(())
+        }
         Command::Mode(mode) => {
-            let result = calculate_mode(&mode.numbers);
-        
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![Cell::new("Mode")]));
-        
-            match result {
-                Some(mode_value) => {
-                    table.add_row(Row::new(vec![Cell::new(&mode_value.to_string())]));
-                }
-                None => {
-                    table.add_row(Row::new(vec![Cell::new("No mode exists.")]));
+            debug!("Calculating mode with: {:?}", mode);
+            
+            if mode.numbers.is_empty() {
+                return Err(FinanceError::InvalidInput("No numbers provided".into()).into());
+            }
+            
+            // Calculate mode using a different approach since f64 doesn't implement Hash/Eq
+            // Use a Vec<(f64, u32)> to store numbers and their counts
+            let mut counts: Vec<(f64, u32)> = Vec::new();
+            
+            for &number in mode.numbers.iter() {
+                // Check if the number already exists in our counts
+                match counts.iter_mut().find(|(n, _)| (n - number).abs() < f64::EPSILON) {
+                    Some((_, count)) => *count += 1,
+                    None => counts.push((number, 1)),
                 }
             }
-        
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
+            
+            // Find the highest frequency
+            if let Some(max_freq) = counts.iter().map(|(_, count)| *count).max() {
+                // Find all numbers with this frequency
+                let mode_values: Vec<f64> = counts.iter()
+                    .filter(|(_, count)| *count == max_freq)
+                    .map(|(number, _)| *number)
+                    .collect();
+                
+                // Check if there's a tie
+                let has_tie = mode_values.len() > 1;
+                
+                // Create and format table
+                let mut table = create_table(vec!["Number", "Frequency"]);
+                
+                // Add each number and its frequency to the table
+                for (number, count) in &counts {
+                    let freq_cell = if *count == max_freq {
+                        Cell::new(&format!("{}", count)).fg(Color::Green)
+                    } else {
+                        Cell::new(&format!("{}", count))
+                    };
+                    
+                    table.add_row(vec![
+                        Cell::new(&format!("{:.2}", number)),
+                        freq_cell,
+                    ]);
+                }
+                
+                // Add mode row
+                if has_tie {
+                    table.add_row(vec![
+                        Cell::new("Mode:").fg(Color::Yellow),
+                        Cell::new("Multiple modes").fg(Color::Yellow),
+                    ]);
+                } else {
+                    table.add_row(vec![
+                        Cell::new("Mode:").fg(Color::Green),
+                        Cell::new(&format!("{:.2}", mode_values[0])).fg(Color::Green),
+                    ]);
+                }
+                
+                // Print the table
+                println!("{table}");
+                
+                info!("Mode calculation completed");
+                Ok(())
+            } else {
+                Err(FinanceError::InvalidInput("Failed to calculate mode".into()).into())
+            }
         }
-        Command::Medium(medium) => medium.run(),
-        Command::PaybackPeriod(payback_period) => {
-            let result = calculate_payback_period(payback_period.cash_flows.clone(), payback_period.initial_cost);
-        
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Cash Flows"),
-                Cell::new("Initial Cost"),
-                Cell::new("Payback Period"),
-            ]));
-            table.add_row(Row::new(vec![
-                Cell::new(&format!("{:?}", payback_period.cash_flows)),
-                Cell::new(&format_currency(payback_period.initial_cost)),
-                Cell::new(&result.to_string()),
-            ]));
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
+        Command::Medium(medium) => {
+            debug!("Calculating median with: {:?}", medium);
+            
+            if medium.numbers.is_empty() {
+                return Err(FinanceError::InvalidInput("No numbers provided".into()).into());
+            }
+            
+            // Sort the numbers
+            let mut sorted = medium.numbers.clone();
+            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            
+            // Calculate median
+            let len = sorted.len();
+            let median = if len % 2 == 0 {
+                // Even number of elements
+                (sorted[len / 2 - 1] + sorted[len / 2]) / 2.0
+            } else {
+                // Odd number of elements
+                sorted[len / 2]
+            };
+            
+            // Create and format table
+            let mut table = create_table(vec!["Number"]);
+            
+            // Add each number to the table
+            for (idx, &number) in sorted.iter().enumerate() {
+                let is_median = if len % 2 == 0 {
+                    idx == len / 2 - 1 || idx == len / 2
+                } else {
+                    idx == len / 2
+                };
+                
+                let cell = if is_median {
+                    Cell::new(&format!("{:.2}", number)).fg(Color::Green)
+                } else {
+                    Cell::new(&format!("{:.2}", number))
+                };
+                
+                table.add_row(vec![cell]);
+            }
+            
+            // Add median row
+            table.add_row(vec![
+                Cell::new(&format!("Median: {:.2}", median)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Median calculation completed: {:.4}", median);
+            Ok(())
         }
-        Command::BreakEven(break_even) => {
-            calculate_break_even(break_even.fixed_costs, break_even.variable_costs, break_even.price_per_unit);
+        Command::WACC(wacc) => {
+            debug!("Calculating WACC with: {:?}", wacc);
+            
+            // Validate inputs
+            if !wacc.cost_of_equity.is_finite() || !wacc.cost_of_debt.is_finite() || 
+               !wacc.tax_rate.is_finite() || !wacc.market_value_equity.is_finite() || 
+               !wacc.market_value_debt.is_finite() {
+                return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+            }
+            
+            if wacc.market_value_equity < 0.0 || wacc.market_value_debt < 0.0 {
+                return Err(FinanceError::InvalidInput("Market values must be non-negative".into()).into());
+            }
+            
+            if wacc.tax_rate < 0.0 || wacc.tax_rate > 1.0 {
+                return Err(FinanceError::InvalidInput("Tax rate must be between 0 and 1".into()).into());
+            }
+            
+            // Check for division by zero
+            if wacc.market_value_equity + wacc.market_value_debt == 0.0 {
+                return Err(FinanceError::DivisionByZero.into());
+            }
+            
+            // Calculate WACC
+            let wacc_value = (wacc.cost_of_equity * wacc.market_value_equity + 
+                           wacc.cost_of_debt * (1.0 - wacc.tax_rate) * wacc.market_value_debt) / 
+                          (wacc.market_value_equity + wacc.market_value_debt);
+            
+            // Create and format table
+            let mut table = create_table(vec!["Component", "Value"]);
+            
+            // Add rows to table
+            table.add_row(vec![
+                Cell::new("Cost of Equity (Ke)"),
+                Cell::new(&format!("{:.2}%", wacc.cost_of_equity * 100.0)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Cost of Debt (Kd)"),
+                Cell::new(&format!("{:.2}%", wacc.cost_of_debt * 100.0)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Tax Rate"),
+                Cell::new(&format!("{:.2}%", wacc.tax_rate * 100.0)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Market Value of Equity (E)"),
+                Cell::new(&format_currency(wacc.market_value_equity)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Market Value of Debt (D)"),
+                Cell::new(&format_currency(wacc.market_value_debt)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("WACC"),
+                Cell::new(&format!("{:.2}%", wacc_value * 100.0)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("WACC calculation completed: {:.4}%", wacc_value * 100.0);
+            Ok(())
         }
-        Command::Depreciation(depreciation) => {
-            depreciation.run();
-        }
+        // This case is already handled above
         Command::Variance(variance) => {
-            let numbers: Vec<f64> = variance.numbers
-                .iter()
-                .map(|n| n.parse::<f64>().unwrap())
+            debug!("Calculating variance with: {:?}", variance);
+            
+            // Convert string numbers to f64
+            let numbers: Result<Vec<f64>, _> = variance.numbers.iter()
+                .map(|n| n.parse::<f64>())
                 .collect();
-        
-            let result = calculate_variance(&numbers);
-        
-            let mut table = Table::new();
-            table.set_titles(Row::new(vec![
-                Cell::new("Number"),
-            ]));
-        
-            for number in &numbers {
-                table.add_row(Row::new(vec![
-                    Cell::new(&number.to_string()),
-                ]));
+            
+            let numbers = match numbers {
+                Ok(nums) => nums,
+                Err(_) => return Err(FinanceError::InvalidInput("Invalid numbers provided".into()).into()),
+            };
+            
+            if numbers.len() <= 1 {
+                return Err(FinanceError::InvalidInput("At least two numbers are required to calculate variance".into()).into());
             }
-        
-            table.add_row(Row::new(vec![
-                Cell::new("Variance"),
-                Cell::new(&result.unwrap_or(0.0).to_string()),
-            ]));
-        
-            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-            table.printstd();
-        }        
-    }
-}
-
-fn calculate_present_value(future_value: f64, rate: f64, time: f64) -> f64 {
-    future_value / (1.0 + rate).powf(time)
-}
-
-fn calculate_future_value(present_value: f64, rate: f64, time: f64) -> f64 {
-    present_value * (1.0 + rate).powf(time)
-}
-
-fn calculate_amortization_schedule(mut loan_amount: f64, annual_interest_rate: f64, loan_term_years: i32, table: &mut Table) {
-    let monthly_interest_rate = annual_interest_rate / 12.0;
-    let total_number_of_payments = loan_term_years * 12;
-
-    let monthly_payment = (monthly_interest_rate * loan_amount) / (1.0 - (1.0 + monthly_interest_rate).powf(-total_number_of_payments as f64));
-
-    table.set_titles(row![bFg->"Month", bFg->"Principal", bFg->"Interest", bFg->"Remaining Balance"]);
-
-    for month in 1..=total_number_of_payments {
-        let interest_payment = monthly_interest_rate * loan_amount;
-        let principal_payment = monthly_payment - interest_payment;
-        loan_amount -= principal_payment;
-
-        table.add_row(row![month, format_currency(principal_payment), format_currency(interest_payment), format_currency(loan_amount)]);
-    }
-}
-
-fn calculate_average(numbers: &[f64]) -> Option<f64> {
-    if numbers.is_empty() {
-        return None;
-    }
-
-    let sum: f64 = numbers.iter().sum();
-    let average = sum / numbers.len() as f64;
-    Some(average)
-}
-
-fn calculate_mode(numbers: &[f64]) -> Option<f64> {
-    let mut counts: HashMap<String, usize> = HashMap::new();
-
-    for &number in numbers {
-        let key = number.to_string();
-        let count = counts.entry(key).or_insert(0);
-        *count += 1;
-    }
-
-    let max_count = counts.values().max();
-
-    if let Some(&count) = max_count {
-        let modes: Vec<f64> = counts
-            .iter()
-            .filter(|&(_, &c)| c == count)
-            .map(|(key, _)| key.parse::<f64>().unwrap())
-            .collect();
-
-        if modes.len() == counts.len() {
-            return None; // No mode exists
-        } else {
-            return Some(*modes.first().unwrap()); // Return the first mode
-        }
-    }
-
-    None // No mode exists
-}
-
-fn calculate_medium(numbers: &[f64]) -> Option<f64> {
-    let mut sorted_numbers = numbers.to_vec();
-    sorted_numbers.sort_by(|a, b| a.partial_cmp(b).unwrap());
-
-    let len = sorted_numbers.len();
-    if len == 0 {
-        None
-    } else if len % 2 == 0 {
-        let mid = len / 2;
-        let median = (sorted_numbers[mid - 1] + sorted_numbers[mid]) / 2.0;
-        Some(median)
-    } else {
-        let mid = len / 2;
-        Some(sorted_numbers[mid])
-    }
-}
-
-impl Medium {
-    fn run(&self) {
-        let medium = calculate_medium(&self.numbers);
-
-        let mut table = Table::new();
-        table.set_format(*format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
-        table.set_titles(Row::new(vec![
-            Cell::new("Numbers").style_spec("Fg"),
-            Cell::new("Medium").style_spec("Fg"),
-        ]));
-
-        for number in &self.numbers {
-            let row = Row::new(vec![
-                Cell::new(&number.to_string()).style_spec("Fg"),
-                Cell::new("").style_spec("Fg"),
+            
+            // Calculate variance
+            let mean = numbers.iter().sum::<f64>() / numbers.len() as f64;
+            let sum_squared_diff: f64 = numbers.iter()
+                .map(|&x| (x - mean).powi(2))
+                .sum();
+            let variance_value = sum_squared_diff / numbers.len() as f64;
+            
+            // Create and format table
+            let mut table = create_table(vec!["Number", "Difference from Mean", "Squared Difference"]);
+            
+            // Add each number to the table
+            for &number in &numbers {
+                let diff = number - mean;
+                let squared_diff = diff.powi(2);
+                
+                table.add_row(vec![
+                    Cell::new(&format!("{:.2}", number)),
+                    Cell::new(&format!("{:.2}", diff)),
+                    Cell::new(&format!("{:.2}", squared_diff)),
+                ]);
+            }
+            
+            // Add variance row
+            table.add_row(vec![
+                Cell::new("Mean:").fg(Color::Blue),
+                Cell::new(&format!("{:.2}", mean)).fg(Color::Blue),
+                Cell::new(""),
             ]);
-            table.add_row(row);
-        }
-
-        if let Some(medium) = medium {
-            let result_row = Row::new(vec![
-                Cell::new("Result").style_spec("Fg"),
-                Cell::new(&medium.to_string()).style_spec("Fg"),
+            
+            table.add_row(vec![
+                Cell::new("Variance:").fg(Color::Green),
+                Cell::new(""),
+                Cell::new(&format!("{:.2}", variance_value)).fg(Color::Green),
             ]);
-            table.add_row(result_row);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Variance calculation completed: {:.4}", variance_value);
+            Ok(())
         }
-
-        table.printstd();
-    }
-}
-
-fn calculate_payback_period(cash_flows: Vec<f64>, initial_cost: f64) -> f64 {
-    let mut cumulative_cash_flow = 0.0;
-    let mut period = 0;
-
-    for cash_flow in cash_flows {
-        cumulative_cash_flow += cash_flow;
-        period += 1;
-
-        if cumulative_cash_flow >= initial_cost {
-            return period as f64;
+        Command::StandardDeviation(std_dev) => {
+            debug!("Calculating standard deviation with: {:?}", std_dev);
+            
+            if std_dev.numbers.len() <= 1 {
+                return Err(FinanceError::InvalidInput("At least two numbers are required to calculate standard deviation".into()).into());
+            }
+            
+            // Calculate standard deviation
+            let mean = std_dev.numbers.iter().sum::<f64>() / std_dev.numbers.len() as f64;
+            let sum_squared_diff: f64 = std_dev.numbers.iter()
+                .map(|&x| (x - mean).powi(2))
+                .sum();
+            let variance = sum_squared_diff / (std_dev.numbers.len() - 1) as f64;
+            let std_dev_value = variance.sqrt();
+            
+            // Create and format table
+            let mut table = create_table(vec!["Number", "Difference from Mean", "Squared Difference"]);
+            
+            // Add each number to the table
+            for &number in &std_dev.numbers {
+                let diff = number - mean;
+                let squared_diff = diff.powi(2);
+                
+                table.add_row(vec![
+                    Cell::new(&format!("{:.2}", number)),
+                    Cell::new(&format!("{:.2}", diff)),
+                    Cell::new(&format!("{:.2}", squared_diff)),
+                ]);
+            }
+            
+            // Add summary rows
+            table.add_row(vec![
+                Cell::new("Mean:").fg(Color::Blue),
+                Cell::new(&format!("{:.2}", mean)).fg(Color::Blue),
+                Cell::new(""),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Variance:").fg(Color::Blue),
+                Cell::new(""),
+                Cell::new(&format!("{:.2}", variance)).fg(Color::Blue),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Standard Deviation:").fg(Color::Green),
+                Cell::new(""),
+                Cell::new(&format!("{:.2}", std_dev_value)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Standard deviation calculation completed: {:.4}", std_dev_value);
+            Ok(())
+        }
+        Command::Probability(probability) => {
+            debug!("Calculating probability with: {:?}", probability);
+            
+            // Validate inputs
+            if probability.trials == 0 {
+                return Err(FinanceError::DivisionByZero.into());
+            }
+            
+            if probability.successes > probability.trials {
+                return Err(FinanceError::InvalidInput("Successes cannot be greater than trials".into()).into());
+            }
+            
+            // Calculate probability
+            let probability_value = probability.successes as f64 / probability.trials as f64;
+            
+            // Create and format table
+            let mut table = create_table(vec!["Successes", "Trials", "Probability"]);
+            
+            // Add row
+            table.add_row(vec![
+                Cell::new(&format!("{}", probability.successes)),
+                Cell::new(&format!("{}", probability.trials)),
+                Cell::new(&format!("{:.2}%", probability_value * 100.0)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Probability calculation completed: {:.4}", probability_value);
+            Ok(())
+        }
+        Command::CAPM(capm) => {
+            debug!("Calculating CAPM with: {:?}", capm);
+            
+            // Validate inputs
+            if !capm.risk_free_rate.is_finite() || !capm.beta.is_finite() || !capm.market_return.is_finite() {
+                return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+            }
+            
+            // Calculate CAPM
+            let expected_return = capm.risk_free_rate + capm.beta * (capm.market_return - capm.risk_free_rate);
+            
+            // Create and format table
+            let mut table = create_table(vec!["Component", "Value"]);
+            
+            // Add rows
+            table.add_row(vec![
+                Cell::new("Risk-Free Rate"),
+                Cell::new(&format!("{:.2}%", capm.risk_free_rate * 100.0)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Beta"),
+                Cell::new(&format!("{:.2}", capm.beta)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Market Return"),
+                Cell::new(&format!("{:.2}%", capm.market_return * 100.0)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Expected Return (CAPM)"),
+                Cell::new(&format!("{:.2}%", expected_return * 100.0)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("CAPM calculation completed: {:.4}%", expected_return * 100.0);
+            Ok(())
+        }
+        Command::LoanPayment(loan) => {
+            debug!("Calculating loan payment with: {:?}", loan);
+            
+            // Validate inputs
+            if !loan.principal.is_finite() || !loan.interest_rate.is_finite() || !loan.loan_term.is_finite() {
+                return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+            }
+            
+            if loan.principal <= 0.0 {
+                return Err(FinanceError::InvalidInput("Principal must be positive".into()).into());
+            }
+            
+            if loan.interest_rate <= 0.0 {
+                return Err(FinanceError::InvalidInput("Interest rate must be positive".into()).into());
+            }
+            
+            if loan.loan_term <= 0.0 {
+                return Err(FinanceError::InvalidInput("Loan term must be positive".into()).into());
+            }
+            
+            // Calculate monthly payment
+            let monthly_rate = loan.interest_rate / 100.0 / 12.0;
+            let num_payments = loan.loan_term * 12.0;
+            let monthly_payment = (loan.principal * monthly_rate) / (1.0 - (1.0 + monthly_rate).powf(-num_payments));
+            
+            // Calculate total payment
+            let total_payment = monthly_payment * num_payments;
+            let total_interest = total_payment - loan.principal;
+            
+            // Calculate payoff date
+            let current_date = Local::now().naive_local().date();
+            let months_to_add = num_payments as i32;
+            let payoff_date = current_date + Months::new(months_to_add as u32);
+            
+            // Create and format table
+            let mut table = create_table(vec!["Component", "Value"]);
+            
+            // Add rows
+            table.add_row(vec![
+                Cell::new("Principal"),
+                Cell::new(&format_currency(loan.principal)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Annual Interest Rate"),
+                Cell::new(&format!("{:.2}%", loan.interest_rate)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Loan Term"),
+                Cell::new(&format!("{:.1} years", loan.loan_term)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Monthly Payment"),
+                Cell::new(&format_currency(monthly_payment)).fg(Color::Green),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Total Interest"),
+                Cell::new(&format_currency(total_interest)).fg(Color::Green),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Payoff Date"),
+                Cell::new(&payoff_date.format("%Y-%m-%d").to_string()).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Loan payment calculation completed. Monthly payment: {:.2}", monthly_payment);
+            Ok(())
+        }
+        Command::BreakEvenUnits(break_even) => {
+            debug!("Calculating break-even units with: {:?}", break_even);
+            
+            // Validate inputs
+            if !break_even.fixed_costs.is_finite() || !break_even.variable_costs.is_finite() || !break_even.price_per_unit.is_finite() {
+                return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+            }
+            
+            if break_even.fixed_costs < 0.0 {
+                return Err(FinanceError::InvalidInput("Fixed costs must be non-negative".into()).into());
+            }
+            
+            if break_even.variable_costs < 0.0 {
+                return Err(FinanceError::InvalidInput("Variable costs must be non-negative".into()).into());
+            }
+            
+            if break_even.price_per_unit <= 0.0 {
+                return Err(FinanceError::InvalidInput("Price per unit must be positive".into()).into());
+            }
+            
+            // Check for division by zero
+            if break_even.price_per_unit - break_even.variable_costs == 0.0 {
+                return Err(FinanceError::DivisionByZero.into());
+            }
+            
+            // Calculate break-even point
+            let break_even_units = break_even.fixed_costs / (break_even.price_per_unit - break_even.variable_costs);
+            let total_revenue = break_even.price_per_unit * break_even_units;
+            
+            // Create and format table
+            let mut table = create_table(vec!["Component", "Value"]);
+            
+            // Add rows
+            table.add_row(vec![
+                Cell::new("Fixed Costs"),
+                Cell::new(&format_currency(break_even.fixed_costs)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Variable Costs Per Unit"),
+                Cell::new(&format_currency(break_even.variable_costs)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Price Per Unit"),
+                Cell::new(&format_currency(break_even.price_per_unit)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Contribution Margin Per Unit"),
+                Cell::new(&format_currency(break_even.price_per_unit - break_even.variable_costs)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Break-Even Point (Units)"),
+                Cell::new(&format!("{:.0}", break_even_units)).fg(Color::Green),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Total Revenue at Break-Even"),
+                Cell::new(&format_currency(total_revenue)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Break-even units calculation completed: {:.0} units", break_even_units);
+            Ok(())
+        }
+        Command::Mortgage(mortgage) => {
+            debug!("Calculating mortgage with: {:?}", mortgage);
+            
+            // Validate inputs
+            if !mortgage.loan_amount.is_finite() || !mortgage.interest_rate.is_finite() {
+                return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+            }
+            
+            if mortgage.loan_amount <= 0.0 {
+                return Err(FinanceError::InvalidInput("Loan amount must be positive".into()).into());
+            }
+            
+            if mortgage.interest_rate <= 0.0 {
+                return Err(FinanceError::InvalidInput("Interest rate must be positive".into()).into());
+            }
+            
+            if mortgage.term <= 0 {
+                return Err(FinanceError::InvalidInput("Term must be positive".into()).into());
+            }
+            
+            // Calculate monthly payment
+            let monthly_interest_rate = mortgage.interest_rate / 12.0 / 100.0;
+            let loan_term_months = mortgage.term * 12;
+            
+            let monthly_payment = (mortgage.loan_amount * monthly_interest_rate) /
+                (1.0 - (1.0 + monthly_interest_rate).powi(-loan_term_months));
+            
+            // Calculate total payment
+            let total_payment = monthly_payment * loan_term_months as f64;
+            let total_interest = total_payment - mortgage.loan_amount;
+            
+            // Calculate payoff date
+            let current_date = Local::now().naive_local().date();
+            let payoff_date = current_date + Months::new(loan_term_months as u32);
+            
+            // Create and format table
+            let mut table = create_table(vec!["Component", "Value"]);
+            
+            // Add rows
+            table.add_row(vec![
+                Cell::new("Loan Amount"),
+                Cell::new(&format_currency(mortgage.loan_amount)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Annual Interest Rate"),
+                Cell::new(&format!("{:.2}%", mortgage.interest_rate)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Loan Term"),
+                Cell::new(&format!("{} years", mortgage.term)),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Monthly Payment"),
+                Cell::new(&format_currency(monthly_payment)).fg(Color::Green),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Total Interest"),
+                Cell::new(&format_currency(total_interest)).fg(Color::Green),
+            ]);
+            
+            table.add_row(vec![
+                Cell::new("Payoff Date"),
+                Cell::new(&payoff_date.format("%Y-%m-%d").to_string()).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Mortgage calculation completed");
+            Ok(())
+        }
+        Command::DCF(dcf) => {
+            debug!("Calculating DCF with: {:?}", dcf);
+            
+            // Validate inputs
+            if !dcf.discount_rate.is_finite() {
+                return Err(FinanceError::InvalidInput("Discount rate must be a valid number".into()).into());
+            }
+            
+            if dcf.cash_flows.is_empty() {
+                return Err(FinanceError::InvalidInput("No cash flows provided".into()).into());
+            }
+            
+            if dcf.discount_rate <= -1.0 {
+                return Err(FinanceError::InvalidInput("Discount rate must be greater than -1".into()).into());
+            }
+            
+            // Calculate DCF
+            let mut present_values = Vec::new();
+            
+            for (i, &cash_flow) in dcf.cash_flows.iter().enumerate() {
+                let present_value = cash_flow / (1.0 + dcf.discount_rate).powf((i + 1) as f64);
+                present_values.push(present_value);
+            }
+            
+            let dcf_value: f64 = present_values.iter().sum();
+            
+            // Create and format table
+            let mut table = create_table(vec!["Year", "Cash Flow", "Present Value"]);
+            
+            // Add rows for each year
+            for (i, (&cash_flow, &present_value)) in dcf.cash_flows.iter().zip(present_values.iter()).enumerate() {
+                table.add_row(vec![
+                    Cell::new(&format!("{}", i + 1)),
+                    Cell::new(&format_currency(cash_flow)),
+                    Cell::new(&format_currency(present_value)),
+                ]);
+            }
+            
+            // Add total row
+            table.add_row(vec![
+                Cell::new("Total").fg(Color::Green),
+                Cell::new(""),
+                Cell::new(&format_currency(dcf_value)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("DCF calculation completed: {:.2}", dcf_value);
+            Ok(())
+        }
+        Command::WeightedAverage(wa) => {
+            debug!("Calculating weighted average with: {:?}", wa);
+            
+            // Parse the numbers and weights
+            let numbers: Result<Vec<f64>, _> = wa.numbers.split_whitespace().map(str::parse).collect();
+            let weights: Result<Vec<f64>, _> = wa.weights.split_whitespace().map(str::parse).collect();
+            
+            let numbers = match numbers {
+                Ok(nums) => nums,
+                Err(_) => return Err(FinanceError::InvalidInput("Invalid numbers provided".into()).into()),
+            };
+            
+            let weights = match weights {
+                Ok(wts) => wts,
+                Err(_) => return Err(FinanceError::InvalidInput("Invalid weights provided".into()).into()),
+            };
+            
+            if numbers.is_empty() || weights.is_empty() {
+                return Err(FinanceError::InvalidInput("Numbers and weights cannot be empty".into()).into());
+            }
+            
+            if numbers.len() != weights.len() {
+                return Err(FinanceError::InvalidInput("Number of numbers and weights should be the same".into()).into());
+            }
+            
+            // Calculate weighted average
+            let mut sum = 0.0;
+            let mut total_weight = 0.0;
+            
+            for (number, weight) in numbers.iter().zip(weights.iter()) {
+                sum += number * weight;
+                total_weight += weight;
+            }
+            
+            if total_weight == 0.0 {
+                return Err(FinanceError::DivisionByZero.into());
+            }
+            
+            let weighted_avg = sum / total_weight;
+            
+            // Create and format table
+            let mut table = create_table(vec!["Number", "Weight", "Weighted Value"]);
+            
+            // Add rows for each number/weight pair
+            for (&number, &weight) in numbers.iter().zip(weights.iter()) {
+                let weighted_value = number * weight;
+                
+                table.add_row(vec![
+                    Cell::new(&format!("{:.2}", number)),
+                    Cell::new(&format!("{:.2}", weight)),
+                    Cell::new(&format!("{:.2}", weighted_value)),
+                ]);
+            }
+            
+            // Add total row
+            table.add_row(vec![
+                Cell::new(""),
+                Cell::new(&format!("Total: {:.2}", total_weight)).fg(Color::Blue),
+                Cell::new(&format!("Sum: {:.2}", sum)).fg(Color::Blue),
+            ]);
+            
+            // Add weighted average row
+            table.add_row(vec![
+                Cell::new("Weighted Average").fg(Color::Green),
+                Cell::new(""),
+                Cell::new(&format!("{:.2}", weighted_avg)).fg(Color::Green),
+            ]);
+            
+            // Print the table
+            println!("{table}");
+            
+            info!("Weighted average calculation completed: {:.4}", weighted_avg);
+            Ok(())
+        }
+        Command::ReturnOnEquity(roe) => {
+            roe.execute()
+        },
+        _ => {
+            // Handle any other commands that might be added in the future
+            Err(anyhow::anyhow!("This command hasn't been implemented in the modernized version yet"))
         }
     }
-
-    -1.0 // Indicates that the payback period was not reached
 }
 
-fn calculate_break_even(fixed_costs: f64, variable_costs: f64, price_per_unit: f64) {
-    let break_even_point = fixed_costs / (price_per_unit - variable_costs);
-    let total_revenue = price_per_unit * break_even_point;
-
-    let mut table = Table::new();
-    table.set_titles(Row::new(vec![
-        Cell::new("Metric"),
-        Cell::new("Value"),
-    ]));
-    table.add_row(Row::new(vec![
-        Cell::new("Break-Even Point (units)"),
-        Cell::new(&format_currency(break_even_point)),
-    ]));
-    table.add_row(Row::new(vec![
-        Cell::new("Total Revenue Required ($)"),
-        Cell::new(&format_currency(total_revenue)),
-    ]));
-
-    table.printstd();
-}
-
-fn format_currency(number: f64) -> String {
-    let decimal = Decimal::from_f64(number).unwrap();
-    let formatted = decimal.to_string();
-    
-    let parts: Vec<&str> = formatted.split('.').collect();
-    let whole_part = parts[0];
-    let decimal_part = parts.get(1).copied().unwrap_or("");
-    
-    let whole_part_with_commas = insert_commas(whole_part);
-
-    if decimal_part.is_empty() {
-        format!("${}", whole_part_with_commas)
-    } else {
-        format!("${}.{:.2}", whole_part_with_commas, decimal_part)
-    }
-}
-
-fn insert_commas(number: &str) -> String {
-    let chars: Vec<char> = number.chars().collect();
-    let mut result = String::new();
-    let mut count = 0;
-
-    for i in (0..chars.len()).rev() {
-        if count == 3 {
-            result.insert(0, ',');
-            count = 0;
+/// Application entry point with error handling
+fn main() {
+    // Run the application and handle any errors
+    if let Err(err) = run() {
+        // Print the error and its causes
+        eprintln!("{}: {}", "Error".red().bold(), err);
+        
+        // Print the error chain for better debugging
+        let mut cause = err.source();
+        while let Some(source_err) = cause {
+            eprintln!("  {}: {}", "Caused by".yellow().bold(), source_err);
+            cause = source_err.source();
         }
-        result.insert(0, chars[i]);
-        count += 1;
+        
+        // Exit with a non-zero status code
+        std::process::exit(1);
     }
-
-    result
-}
-
-fn calculate_variance(numbers: &[f64]) -> Option<f64> {
-    let count = numbers.len() as f64;
-
-    if count <= 1.0 {
-        return None; // Variance is undefined for a single element or an empty data set
-    }
-
-    let mean = numbers.iter().sum::<f64>() / count;
-
-    let sum_squared_diff: f64 = numbers
-        .iter()
-        .map(|&x| (x - mean).powi(2))
-        .sum();
-
-    Some(sum_squared_diff / count)
-}
-
-fn calculate_standard_deviation(numbers: &[f64]) -> Option<f64> {
-    let n = numbers.len() as f64;
-
-    if n < 2.0 {
-        return None;
-    }
-
-    let mean = calculate_mean(numbers);
-
-    let sum_squared_deviations = numbers
-        .iter()
-        .map(|&number| (number - mean).powi(2))
-        .sum::<f64>();
-
-    let variance = sum_squared_deviations / (n - 1.0);
-
-    Some(variance.sqrt())
-}
-
-fn calculate_mean(numbers: &[f64]) -> f64 {
-    let sum: f64 = numbers.iter().sum();
-    let count = numbers.len() as f64;
-    sum / count
 }
