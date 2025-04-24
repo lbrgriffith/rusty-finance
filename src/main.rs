@@ -61,7 +61,7 @@ enum Command {
     Mode(Mode),
     
     /// Calculates the median of a series of numbers.
-    Medium(Medium),
+    Median(Median),
     
     /// Calculates the payback period.
     PaybackPeriod(PaybackPeriod),
@@ -368,7 +368,7 @@ struct Mode {
 }
 
 #[derive(Parser, Debug)]
-struct Medium {
+struct Median {
     /// The numbers to calculate the median
     #[clap(name = "numbers", required = true)]
     numbers: Vec<f64>,
@@ -1050,15 +1050,15 @@ fn run() -> Result<()> {
                 Err(FinanceError::InvalidInput("Failed to calculate mode".into()).into())
             }
         }
-        Command::Medium(medium) => {
-            debug!("Calculating median with: {:?}", medium);
+        Command::Median(median) => {
+            debug!("Calculating median with: {:?}", median);
             
-            if medium.numbers.is_empty() {
+            if median.numbers.is_empty() {
                 return Err(FinanceError::InvalidInput("No numbers provided".into()).into());
             }
             
             // Sort the numbers
-            let mut sorted = medium.numbers.clone();
+            let mut sorted = median.numbers.clone();
             sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
             
             // Calculate median

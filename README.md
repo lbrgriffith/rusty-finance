@@ -17,7 +17,11 @@ Rusty Finance is a modern command-line tool for performing financial calculation
 
 ## Installation
 
+# Example: Running a Command
+
 ```bash
+rusty-finance interest --principal 1000 --rate 0.05 --time 2
+```
 # Clone the repository
 git clone https://github.com/yourusername/rusty-finance.git
 cd rusty-finance
