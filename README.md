@@ -7,6 +7,8 @@
 
 Rusty Finance is a modern, high-performance command-line tool for comprehensive financial calculations. Built with Rust's safety and performance in mind, it features a modular architecture with robust error handling, beautiful table formatting, and extensive validation.
 
+![image](https://github.com/user-attachments/assets/a7955b90-442f-48a3-9058-6bffe27d396d)
+
 ## Features
 
 - 🚀 **Modern Rust Architecture**: Built with Rust 2021 edition featuring modular design
