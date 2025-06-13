@@ -1,7 +1,6 @@
 //! Display and formatting utilities for financial data
 
-use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
-use owo_colors::OwoColorize;
+use comfy_table::{Cell, Color, ContentArrangement, Table};
 use rust_decimal::prelude::*;
 use log::warn;
 
@@ -15,11 +14,10 @@ use log::warn;
 pub fn create_table(headers: Vec<&str>) -> Table {
     let mut table = Table::new();
     
-    // Set up table styling
+    // Set up simple table styling for better alignment
     table
         .set_header(headers)
         .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_width(80)
         .load_preset(comfy_table::presets::UTF8_BORDERS_ONLY);
     
     table
@@ -41,6 +39,17 @@ pub fn create_table(headers: Vec<&str>) -> Table {
 /// // Returns something like "$1,234.56" in green (for positive) or red (for negative)
 /// ```
 pub fn format_currency(number: f64) -> String {
+    format_currency_plain(number)
+}
+
+/// Formats a number as currency without colors for better table alignment
+/// 
+/// # Arguments
+/// * `number` - The number to format as currency
+/// 
+/// # Returns
+/// * A formatted currency string without color codes
+pub fn format_currency_plain(number: f64) -> String {
     // Convert the f64 to a Decimal for accurate handling
     let decimal = Decimal::from_f64(number)
         .unwrap_or_else(|| {
@@ -64,12 +73,8 @@ pub fn format_currency(number: f64) -> String {
     // Add commas to the whole part
     let whole_with_commas = add_thousands_separators(whole_part);
     
-    // Format as currency
-    if number >= 0.0 {
-        format!("${}.{}", whole_with_commas, decimal_part).green().to_string()
-    } else {
-        format!("${}.{}", whole_with_commas, decimal_part).red().to_string()
-    }
+    // Format as currency without colors
+    format!("${}.{}", whole_with_commas, decimal_part)
 }
 
 /// Formats a percentage with appropriate coloring
@@ -81,14 +86,20 @@ pub fn format_currency(number: f64) -> String {
 /// # Returns
 /// * A formatted percentage string with appropriate coloring
 pub fn format_percentage(value: f64, decimal_places: usize) -> String {
+    format_percentage_plain(value, decimal_places)
+}
+
+/// Formats a percentage without colors for better table alignment
+/// 
+/// # Arguments
+/// * `value` - The decimal value to format as percentage (0.05 = 5%)
+/// * `decimal_places` - Number of decimal places to show
+/// 
+/// # Returns
+/// * A formatted percentage string without color codes
+pub fn format_percentage_plain(value: f64, decimal_places: usize) -> String {
     let percentage = value * 100.0;
-    let formatted = format!("{:.1$}%", percentage, decimal_places);
-    
-    if percentage >= 0.0 {
-        formatted.green().to_string()
-    } else {
-        formatted.red().to_string()
-    }
+    format!("{:.1$}%", percentage, decimal_places)
 }
 
 /// Formats a number with commas as thousands separators
@@ -155,8 +166,8 @@ pub fn create_summary_table(title: &str, items: Vec<(&str, String)>) -> Table {
     
     for (label, value) in items {
         table.add_row(vec![
-            Cell::new(label),
-            Cell::new(&value).set_alignment(CellAlignment::Right),
+            label.to_string(),
+            value,
         ]);
     }
     
