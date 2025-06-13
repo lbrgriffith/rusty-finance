@@ -1,6 +1,6 @@
 //! Interest calculation functions
 
-use crate::{FinanceError, FinanceResult, validate_positive, validate_non_negative};
+use crate::{FinanceError, FinanceResult, validate_positive, validate_non_negative, validate_calculation_range, safe_multiply, safe_power, safe_divide};
 
 /// Calculates simple interest
 /// 
@@ -22,8 +22,10 @@ pub fn calculate_simple_interest(principal: f64, rate: f64, time: f64) -> Financ
     validate_positive(principal, "Principal")?;
     validate_non_negative(rate, "Interest rate")?;
     validate_non_negative(time, "Time")?;
+    validate_calculation_range(principal, "Principal")?;
     
-    Ok(principal * rate * time)
+    let temp = safe_multiply(principal, rate)?;
+    safe_multiply(temp, time)
 }
 
 /// Calculates compound interest amount for a given year
@@ -51,6 +53,7 @@ pub fn calculate_compound_interest(
 ) -> FinanceResult<f64> {
     validate_positive(principal, "Principal")?;
     validate_non_negative(rate, "Interest rate")?;
+    validate_calculation_range(principal, "Principal")?;
     
     if compound_frequency <= 0 {
         return Err(FinanceError::InvalidInput("Compound frequency must be positive".into()));
@@ -63,7 +66,10 @@ pub fn calculate_compound_interest(
     let rate_per_period = rate / compound_frequency as f64;
     let total_periods = compound_frequency * years;
     
-    Ok(principal * (1.0 + rate_per_period).powf(total_periods as f64))
+    let base = 1.0 + rate_per_period;
+    let exponent = total_periods as f64;
+    let power_result = safe_power(base, exponent)?;
+    safe_multiply(principal, power_result)
 }
 
 /// Calculates the present value of a future amount
@@ -86,12 +92,15 @@ pub fn calculate_present_value(future_value: f64, rate: f64, time: f64) -> Finan
     validate_positive(future_value, "Future value")?;
     validate_non_negative(rate, "Discount rate")?;
     validate_non_negative(time, "Time")?;
+    validate_calculation_range(future_value, "Future value")?;
     
     if rate >= 1.0 {
         return Err(FinanceError::InvalidInput("Discount rate should be less than 100%".into()));
     }
     
-    Ok(future_value / (1.0 + rate).powf(time))
+    let base = 1.0 + rate;
+    let power_result = safe_power(base, time)?;
+    safe_divide(future_value, power_result)
 }
 
 /// Calculates the future value of a present amount
@@ -114,8 +123,11 @@ pub fn calculate_future_value(present_value: f64, rate: f64, time: f64) -> Finan
     validate_positive(present_value, "Present value")?;
     validate_non_negative(rate, "Interest rate")?;
     validate_non_negative(time, "Time")?;
+    validate_calculation_range(present_value, "Present value")?;
     
-    Ok(present_value * (1.0 + rate).powf(time))
+    let base = 1.0 + rate;
+    let power_result = safe_power(base, time)?;
+    safe_multiply(present_value, power_result)
 }
 
 #[cfg(test)]

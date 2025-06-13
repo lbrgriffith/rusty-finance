@@ -23,12 +23,39 @@ fn run() -> Result<()> {
         .init();
     
     info!("Starting rusty-finance");
-    debug!("Using options: {:?}", opts);
+    debug!("Command type: {}", match &opts.command {
+        Command::Interest(_) => "Interest",
+        Command::CompoundInterest(_) => "CompoundInterest", 
+        Command::PresentValue(_) => "PresentValue",
+        Command::FutureValue(_) => "FutureValue",
+        Command::NPV(_) => "NPV",
+        Command::Amortization(_) => "Amortization",
+        Command::ROI(_) => "ROI",
+        Command::Average(_) => "Average",
+        Command::Mode(_) => "Mode",
+        Command::Medium(_) => "Median",
+        Command::PaybackPeriod(_) => "PaybackPeriod",
+        Command::BreakEven(_) => "BreakEven",
+        Command::Depreciation(_) => "Depreciation",
+        Command::IRR(_) => "IRR",
+        Command::Variance(_) => "Variance",
+        Command::StandardDeviation(_) => "StandardDeviation",
+        Command::Probability(_) => "Probability",
+        Command::CAPM(_) => "CAPM",
+        Command::LoanPayment(_) => "LoanPayment",
+        Command::BreakEvenUnits(_) => "BreakEvenUnits",
+        Command::DCF(_) => "DCF",
+        Command::Mortgage(_) => "Mortgage",
+        Command::WeightedAverage(_) => "WeightedAverage",
+        Command::WACC(_) => "WACC",
+        Command::DividendYield(_) => "DividendYield",
+        Command::ReturnOnEquity(_) => "ReturnOnEquity",
+    });
     
     // Execute the selected command
     match opts.command {
         Command::Interest(interest) => {
-            debug!("Calculating simple interest with: {:?}", interest);
+            debug!("Calculating simple interest");
             
             let result = calculate_simple_interest(interest.principal, interest.rate, interest.time)
                 .context("Failed to calculate simple interest")?;
@@ -215,7 +242,7 @@ fn run() -> Result<()> {
             
             // Sort for display
             let mut sorted = medium.numbers.clone();
-            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
             
             for number in &sorted {
                 table.add_row(vec![format!("{:.2}", number)]);

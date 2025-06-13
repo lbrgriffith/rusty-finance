@@ -50,7 +50,7 @@ pub fn calculate_median(numbers: &[f64]) -> FinanceResult<f64> {
     }
     
     let mut sorted = numbers.to_vec();
-    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     
     let len = sorted.len();
     if len % 2 == 0 {
@@ -101,13 +101,18 @@ pub fn calculate_mode(numbers: &[f64]) -> FinanceResult<Option<f64>> {
         }
         
         // Find all numbers with maximum frequency and return the smallest
-        let modes: Vec<f64> = frequency_map
+        let modes: Result<Vec<f64>, _> = frequency_map
             .iter()
             .filter(|(_, &freq)| freq == *max_frequency)
-            .map(|(key, _)| key.parse::<f64>().unwrap())
+            .map(|(key, _)| key.parse::<f64>())
             .collect();
         
-        Ok(modes.into_iter().min_by(|a, b| a.partial_cmp(b).unwrap()))
+        match modes {
+            Ok(mode_values) => {
+                Ok(mode_values.into_iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)))
+            }
+            Err(_) => Err(FinanceError::InvalidInput("Failed to parse mode values".into()))
+        }
     } else {
         Ok(None)
     }
