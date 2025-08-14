@@ -8,18 +8,15 @@ use clap_verbosity_flag::{InfoLevel, Verbosity};
 use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
 
 use env_logger::Env;
-use log::{debug, info};
+use log::{debug, info, warn};
 use owo_colors::OwoColorize;
+use rust_decimal::{Decimal, prelude::FromPrimitive};
 
-/// Custom finance calculation errors
-#[derive(Error, Debug)]
-enum FinanceError {
-    #[error("Invalid input: {0}")]
-    InvalidInput(String),
-    
-    #[error("Division by zero")]
-    DivisionByZero,
-}
+// Import from rusty_finance library
+use rusty_finance::FinanceError;
+use rusty_finance::calculations::*;
+use rusty_finance::display::*;
+
 
 /// Financial calculation tool
 #[derive(Parser, Debug)]
@@ -683,6 +680,7 @@ fn run() -> Result<()> {
         Command::WACC(_) => "WACC",
         Command::DividendYield(_) => "DividendYield",
         Command::ReturnOnEquity(_) => "ReturnOnEquity",
+        Command::Completion(_) => "Completion",
     });
     
     // Execute the selected command
@@ -1009,7 +1007,7 @@ fn run() -> Result<()> {
         Command::DividendYield(dividend_yield) => {
             debug!("Calculating dividend yield with: {:?}", dividend_yield);
             
-            let result = calculate_dividend_yield(dividend_yield.dividend, dividend_yield.price)
+            let result = calculate_dividend_yield(&dividend_yield)
                 .context("Failed to calculate dividend yield")?;
             
             info!("Calculated dividend yield: {:.4}", result);
@@ -1072,9 +1070,6 @@ fn run() -> Result<()> {
             Ok(())
         }
 
-        Command::ReturnOnEquity(roe) => {
-            roe.execute()
-        },
         Command::Completion(completion) => {
             debug!("Generating shell completions for: {:?}", completion.shell);
             
