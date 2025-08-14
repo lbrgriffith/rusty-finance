@@ -14,6 +14,7 @@ Rusty Finance is a modern command-line tool for performing financial calculation
 - 🔍 Comprehensive error handling and validation
 - 📋 Detailed help information for all commands
 - 📝 Extensive logging with configurable verbosity
+- ⚡ Shell completions for Bash, Zsh, Fish, and PowerShell
 
 ## Installation
 
@@ -43,6 +44,45 @@ rusty-finance -v <COMMAND> [OPTIONS]
 rusty-finance help <COMMAND>
 ```
 
+### Shell Completion
+
+Rusty Finance supports shell completions for Bash, Zsh, Fish, and PowerShell to help you quickly navigate commands and options.
+
+#### Installation
+
+To install shell completions, generate the completion script for your shell:
+
+```bash
+# For Bash
+rusty-finance completion bash > ~/.local/share/bash-completion/completions/rusty-finance
+
+# For Zsh (make sure ~/.zfunc is in your $fpath)
+mkdir -p ~/.zfunc
+rusty-finance completion zsh > ~/.zfunc/_rusty-finance
+
+# For Fish
+rusty-finance completion fish > ~/.config/fish/completions/rusty-finance.fish
+
+# For PowerShell (add to your PowerShell profile)
+rusty-finance completion powershell >> $PROFILE
+```
+
+After installing, restart your shell or source your shell configuration file.
+
+#### Usage
+
+With completions installed, you can:
+- Press `Tab` to auto-complete commands and options
+- Press `Tab` twice to see available options
+- Navigate through long command names easily
+
+Example:
+```bash
+rusty-finance <TAB><TAB>      # Shows all available commands
+rusty-finance int<TAB>        # Completes to "interest"
+rusty-finance interest --<TAB><TAB>  # Shows available options: --principal, --rate, --time
+```
+
 Here are the available commands:
 
 - `interest`: Calculates simple interest.
@@ -69,6 +109,7 @@ Here are the available commands:
 - `wacc`: Calculates the weighted average cost of capital
 - `dividend-yield`: Calculates the dividend yield of a stock by dividing the annual dividend per share by the stock's current price.
 - `return-on-equity`: Calculates the return on equity as a percentage,
+- `completion`: Generate shell completions for Bash, Zsh, Fish, or PowerShell.
 
 ## Examples
 

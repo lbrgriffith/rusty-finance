@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
 use chrono::{Local, Months};
-use clap::Parser;
+use clap::{CommandFactory, Parser};
+use clap_complete::{generate, shells::{Bash, Fish, Zsh, PowerShell}};
+use std::io;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
 use env_logger::Env;
@@ -111,6 +113,9 @@ enum Command {
     
     /// Calculates the return on equity (ROE).
     ReturnOnEquity(ReturnOnEquity),
+    
+    /// Generate shell completions.
+    Completion(Completion),
 }
 
 #[derive(Parser, Debug)]
@@ -405,7 +410,7 @@ struct BreakEven {
     fixed_costs: f64,
 
     /// The variable costs per unit
-    #[clap(short, long, name = "variable-costs")]
+    #[clap(short = 'c', long, name = "variable-costs")]
     variable_costs: f64,
 
     /// The price per unit of the product or service
@@ -556,7 +561,7 @@ struct BreakEvenUnits {
     fixed_costs: f64,
 
     /// The variable costs per unit
-    #[clap(short, long, name = "variable-costs")]
+    #[clap(short = 'c', long, name = "variable-costs")]
     variable_costs: f64,
 
     /// The price per unit of the product or service
@@ -622,6 +627,21 @@ struct WACC {
     /// The market value of debt (D)
     #[clap(long)]
     market_value_debt: f64,
+}
+
+#[derive(Parser, Debug)]
+struct Completion {
+    /// Shell to generate completions for
+    #[clap(value_enum)]
+    shell: Shell,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum Shell {
+    Bash,
+    Fish,
+    Zsh,
+    PowerShell,
 }
 
 /// Run the application with proper error handling
@@ -1701,6 +1721,22 @@ fn run() -> Result<()> {
         }
         Command::ReturnOnEquity(roe) => {
             roe.execute()
+        },
+        Command::Completion(completion) => {
+            debug!("Generating shell completions for: {:?}", completion.shell);
+            
+            let mut app = Opts::command();
+            let app_name = app.get_name().to_string();
+            
+            match completion.shell {
+                Shell::Bash => generate(Bash, &mut app, &app_name, &mut io::stdout()),
+                Shell::Fish => generate(Fish, &mut app, &app_name, &mut io::stdout()),
+                Shell::Zsh => generate(Zsh, &mut app, &app_name, &mut io::stdout()),
+                Shell::PowerShell => generate(PowerShell, &mut app, &app_name, &mut io::stdout()),
+            }
+            
+            info!("Shell completions generated successfully");
+            Ok(())
         },
         _ => {
             // Handle any other commands that might be added in the future
