@@ -9,6 +9,7 @@ edition = "2021"
 # Updated core dependencies
 chrono = "0.4.40"
 clap = { version = "4.5.37", features = ["derive"] }
+clap_complete = "4.5"
 rust_decimal = "1.37.1"
 serde = "1.0.219"
 

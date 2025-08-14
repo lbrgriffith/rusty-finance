@@ -10,7 +10,6 @@ Rusty Finance is a modern, high-performance command-line tool for comprehensive 
 ![image](https://github.com/user-attachments/assets/a7955b90-442f-48a3-9058-6bffe27d396d)
 
 ## Features
-
 - 🚀 **Modern Rust Architecture**: Built with Rust 2021 edition featuring modular design
 - 🎨 **Rich CLI Experience**: Color-coded output with modern table formatting using `comfy-table`
 - 🔒 **Type Safety**: Uses `rust_decimal` for precise financial calculations
@@ -20,6 +19,7 @@ Rusty Finance is a modern, high-performance command-line tool for comprehensive 
 - 📋 **Comprehensive Commands**: 20+ financial calculation commands
 - 📝 **Advanced Logging**: Configurable verbosity levels with structured logging
 - ⚡ **High Performance**: Optimized for fast calculations with minimal memory usage
+
 
 ## Installation
 
@@ -65,6 +65,73 @@ rusty-finance -v <COMMAND> [OPTIONS]
 
 # Get help for any command
 rusty-finance help <COMMAND>
+
+### Shell Completion
+
+Rusty Finance supports shell completions for Bash, Zsh, Fish, and PowerShell to help you quickly navigate commands and options.
+
+#### Installation
+
+To install shell completions, generate the completion script for your shell:
+
+```bash
+# For Bash
+rusty-finance completion bash > ~/.local/share/bash-completion/completions/rusty-finance
+
+# For Zsh (make sure ~/.zfunc is in your $fpath)
+mkdir -p ~/.zfunc
+rusty-finance completion zsh > ~/.zfunc/_rusty-finance
+
+# For Fish
+rusty-finance completion fish > ~/.config/fish/completions/rusty-finance.fish
+
+# For PowerShell (add to your PowerShell profile)
+rusty-finance completion powershell >> $PROFILE
+```
+
+After installing, restart your shell or source your shell configuration file.
+
+#### Usage
+
+With completions installed, you can:
+- Press `Tab` to auto-complete commands and options
+- Press `Tab` twice to see available options
+- Navigate through long command names easily
+
+Example:
+```bash
+rusty-finance <TAB><TAB>      # Shows all available commands
+rusty-finance int<TAB>        # Completes to "interest"
+rusty-finance interest --<TAB><TAB>  # Shows available options: --principal, --rate, --time
+```
+
+Here are the available commands:
+
+- `interest`: Calculates simple interest.
+- `compound-interest`: Calculates compound interest.
+- `present-value`: Calculates present value.
+- `future-value`: Calculates future value.
+- `npv`: Calculates net present value.
+- `amortization`: Calculates an amortization schedule.
+- `average`: Calculates the average of a series of numbers.
+- `mode`: Calculates the mode of a series of numbers.
+- `medium`: Calculates the median of a series of numbers.
+- `payback-period`: Calculates the payback period.
+- `break-even`: Performs break-even analysis.
+- `depreciation`: Calculates the depreciation of an asset.
+- `irr`: Calculates the internal rate of return.
+- `variance`: Measures how much the numbers in a data set deviate from the mean.
+- `probability`: Calculates the probability of an event.
+- `capm`: Calculates the expected return using the Capital Asset Pricing Model.
+- `loan-payment`: Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
+- `break-even-units`: Calculate the number of units a business needs to sell to break even.
+- `dcf`: Calculates the present value of future cash flows, considering the time value of money.
+- `mortgage`: Calculate mortgage payments.
+- `weighted-average`: Calculate the weighted average of a series of numbers.
+- `wacc`: Calculates the weighted average cost of capital
+- `dividend-yield`: Calculates the dividend yield of a stock by dividing the annual dividend per share by the stock's current price.
+- `return-on-equity`: Calculates the return on equity as a percentage,
+- `completion`: Generate shell completions for Bash, Zsh, Fish, or PowerShell.
 
 # List all available commands
 rusty-finance --help

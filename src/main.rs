@@ -1,16 +1,649 @@
 use anyhow::{Context, Result};
 use chrono::{Local, Months};
-use clap::Parser;
+
+use clap::{CommandFactory, Parser};
+use clap_complete::{generate, shells::{Bash, Fish, Zsh, PowerShell}};
+use std::io;
+use clap_verbosity_flag::{InfoLevel, Verbosity};
+use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
+
 use env_logger::Env;
 use log::{debug, info};
 use owo_colors::OwoColorize;
 
-// Import from our modular structure
-use rusty_finance::{
-    calculations::*,
-    cli::*,
-    display::*,
-};
+/// Custom finance calculation errors
+#[derive(Error, Debug)]
+enum FinanceError {
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+    
+    #[error("Division by zero")]
+    DivisionByZero,
+}
+
+/// Financial calculation tool
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Opts {
+    /// Verbosity level for logging
+    #[clap(flatten)]
+    verbose: Verbosity<InfoLevel>,
+    
+    #[clap(subcommand)]
+    command: Command,
+}
+
+#[derive(Parser, Debug)]
+enum Command {
+    /// Calculates simple interest.
+    Interest(Interest),
+    
+    /// Calculates compound interest.
+    CompoundInterest(CompoundInterest),
+    
+    /// Calculates present value.
+    PresentValue(PresentValue),
+    
+    /// Calculates future value.
+    FutureValue(FutureValue),
+    
+    /// Calculates net present value.
+    NPV(NPV),
+    
+    /// Calculates an amortization schedule.
+    Amortization(Amortization),
+    
+    /// Calculates the return on investment (ROI).
+    ROI(ROI),
+    
+    /// Calculates the average of a series of numbers.
+    Average(Average),
+    
+    /// Calculates the mode of a series of numbers.
+    Mode(Mode),
+    
+    /// Calculates the median of a series of numbers.
+    Medium(Medium),
+    
+    /// Calculates the payback period.
+    PaybackPeriod(PaybackPeriod),
+    
+    /// Performs break-even analysis.
+    BreakEven(BreakEven),
+    
+    /// Calculates the depreciation of an asset.
+    Depreciation(Depreciation),
+    
+    /// Calculates the internal rate of return (IRR).
+    IRR(IRR),
+    
+    /// Calculates the variance of a series of numbers.
+    Variance(Variance),
+    
+    /// Calculates the standard deviation of a series of numbers.
+    StandardDeviation(StandardDeviation),
+    
+    /// Calculates probability.
+    Probability(Probability),
+    
+    /// Calculates the expected return on an investment based on its risk and market factors.
+    CAPM(CAPM),
+    
+    /// Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
+    LoanPayment(LoanPayment),
+    
+    /// Calculate the number of units a business needs to sell to break even.
+    BreakEvenUnits(BreakEvenUnits),
+    
+    /// Calculate the discounted cash flow.
+    DCF(DCF),
+    
+    /// Calculates mortgage payments, total interest paid, and loan payoff date
+    Mortgage(Mortgage),
+    
+    /// Calculates the weighted average of a series of numbers.
+    #[clap(name = "weighted-average")]
+    WeightedAverage(WeightedAverage),
+    
+    /// Calculates the weighted average cost of capital (WACC).
+    WACC(WACC),
+    
+    /// Calculates the dividend yield.
+    DividendYield(DividendYield),
+    
+    /// Calculates the return on equity (ROE).
+    ReturnOnEquity(ReturnOnEquity),
+    
+    /// Generate shell completions.
+    Completion(Completion),
+}
+
+#[derive(Parser, Debug)]
+pub struct ReturnOnEquity {
+    /// Net Income
+    #[clap(short, long)]
+    net_income: f64,
+
+    /// Equity
+    #[clap(short, long)]
+    equity: f64,
+}
+
+#[derive(Parser, Debug)]
+struct Interest {
+    /// The principal amount (initial money)
+    #[clap(short, long)]
+    principal: f64,
+
+    /// The rate of interest (per period)
+    #[clap(short, long)]
+    rate: f64,
+
+    /// The time the money is invested for
+    #[clap(short, long)]
+    time: f64,
+}
+
+#[derive(Parser, Debug)]
+struct CompoundInterest {
+    /// The principal amount (initial money)
+    #[clap(short, long)]
+    principal: f64,
+
+    /// The annual interest rate
+    #[clap(short, long)]
+    rate: f64,
+
+    /// The number of times interest is compounded per year
+    #[clap(short, long)]
+    n: i32,
+
+    /// The time the money is invested for in years
+    #[clap(short, long)]
+    t: i32,
+}
+
+impl ReturnOnEquity {
+    /// Calculate ROE and display results with error handling
+    fn execute(&self) -> Result<()> {
+        debug!("Calculating ROE with: {:?}", self);
+        
+        // Validate inputs are finite numbers
+        if !self.net_income.is_finite() {
+            return Err(FinanceError::InvalidInput(format!("Net income must be a valid number: {}", self.net_income)).into());
+        }
+        
+        if !self.equity.is_finite() {
+            return Err(FinanceError::InvalidInput(format!("Equity must be a valid number: {}", self.equity)).into());
+        }
+        
+        // Convert net_income and equity to Decimal with proper error handling
+        let net_income = Decimal::from_f64(self.net_income)
+            .ok_or_else(|| FinanceError::InvalidInput(format!("Invalid net income: {}", self.net_income)))?;
+        
+        let equity = Decimal::from_f64(self.equity)
+            .ok_or_else(|| FinanceError::InvalidInput(format!("Invalid equity: {}", self.equity)))?;
+            
+        // Validate inputs
+        if equity.is_zero() {
+            return Err(FinanceError::DivisionByZero.into());
+        }
+        
+        // Equity should be positive for a meaningful ROE calculation
+        if equity < Decimal::ZERO {
+            return Err(FinanceError::InvalidInput(format!("Equity should be positive: {}", self.equity)).into());
+        }
+
+        // Calculate the return on equity
+        let roe = (net_income / equity) * Decimal::from_f64(100.0).unwrap();
+        info!("Calculated ROE: {:.4}%", roe);
+
+        // Create the table with modern styling
+        let mut table = create_table(vec!["Net Income", "Equity", "Return on Equity"]);
+        
+        // Add data row with colorful formatting
+        table.add_row(vec![
+            Cell::new(&format_currency(self.net_income)),
+            Cell::new(&format_currency(self.equity)),
+            Cell::new(&format!("{:.2}%", roe)).fg(Color::Green).set_alignment(CellAlignment::Right),
+        ]);
+
+        // Print the table
+        println!("{table}");
+        
+        info!("ROE calculation completed successfully");
+        Ok(())
+    }
+}
+
+#[derive(Parser, Debug)]
+struct PresentValue {
+    /// The future value of the investment.
+    #[clap(short, long)]
+    future_value: f64,
+
+    /// The interest rate per period.
+    #[clap(short, long)]
+    rate: f64,
+
+    /// The number of periods.
+    #[clap(short, long)]
+    time: f64,
+}
+
+#[derive(Parser, Debug)]
+struct FutureValue {
+    /// The present value of the investment.
+    #[clap(short, long)]
+    present_value: f64,
+
+    /// The interest rate per period.
+    #[clap(short, long)]
+    rate: f64,
+
+    /// The number of periods.
+    #[clap(short, long)]
+    time: f64,
+}
+
+#[derive(Parser, Debug)]
+struct DividendYield {
+    /// The dividend
+    #[clap(short, long)]
+    dividend: f64,
+
+    /// The price
+    #[clap(short, long)]
+    price: f64,
+}
+
+#[derive(Parser, Debug)]
+struct NPV {
+    /// The initial investment or cost
+    #[clap(short, long, name = "initial-investment")]
+    initial_investment: f64,
+
+    /// The annual cash inflow
+    #[clap(short, long, name = "cash-inflow")]
+    cash_inflow: f64,
+
+    /// The discount rate
+    #[clap(short, long, name = "discount-rate")]
+    discount_rate: f64,
+
+    /// The lifespan of the investment in years
+    #[clap(short, long, name = "lifespan")]
+    lifespan: i32,
+}
+
+#[derive(Parser, Debug)]
+struct Amortization {
+    /// The initial loan amount
+    #[clap(short = 'a', long)]
+    loan_amount: f64,
+
+    /// The annual interest rate
+    #[clap(short = 'i', long)]
+    annual_interest_rate: f64,
+
+    /// The loan term in years
+    #[clap(short = 't', long)]
+    loan_term_years: i32,
+}
+
+/// Calculate present value
+fn calculate_present_value(future_value: f64, rate: f64, time: f64) -> Result<f64> {
+    if !future_value.is_finite() || !rate.is_finite() || !time.is_finite() {
+        return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+    }
+    
+    if rate < 0.0 {
+        return Err(FinanceError::InvalidInput("Rate must be positive".into()).into());
+    }
+    
+    if time < 0.0 {
+        return Err(FinanceError::InvalidInput("Time must be positive".into()).into());
+    }
+    
+    let result = future_value / (1.0 + rate).powf(time);
+    Ok(result)
+}
+
+/// Calculate future value
+fn calculate_future_value(present_value: f64, rate: f64, time: f64) -> Result<f64> {
+    if !present_value.is_finite() || !rate.is_finite() || !time.is_finite() {
+        return Err(FinanceError::InvalidInput("All inputs must be valid numbers".into()).into());
+    }
+    
+    if rate < 0.0 {
+        return Err(FinanceError::InvalidInput("Rate must be positive".into()).into());
+    }
+    
+    if time < 0.0 {
+        return Err(FinanceError::InvalidInput("Time must be positive".into()).into());
+    }
+    
+    let result = present_value * (1.0 + rate).powf(time);
+    Ok(result)
+}
+
+/// Calculate dividend yield with proper error handling
+fn calculate_dividend_yield(dividend_yield: &DividendYield) -> Result<f64> {
+    // Validate inputs
+    if dividend_yield.price <= 0.0 {
+        return Err(FinanceError::InvalidInput(format!("Price must be positive: {}", dividend_yield.price)).into());
+    }
+    
+    // Dividend can be negative for stocks that lose money, but let's validate it's not NaN or infinite
+    if !dividend_yield.dividend.is_finite() {
+        return Err(FinanceError::InvalidInput(format!("Dividend must be a valid number: {}", dividend_yield.dividend)).into());
+    }
+    
+    // Calculate dividend yield
+    let result = dividend_yield.dividend / dividend_yield.price;
+    
+    debug!("Calculated dividend yield: {:.4}", result);
+    Ok(result)
+}
+
+/// Create a styled table with the given headers
+#[derive(Parser, Debug)]
+struct ROI {
+    /// The net profit
+    #[clap(short, long, name = "net-profit")]
+    net_profit: f64,
+
+    /// The cost of investment
+    #[clap(short, long, name = "cost-of-investment")]
+    cost_of_investment: f64,
+}
+
+#[derive(Parser, Debug)]
+struct Average {
+    /// The numbers to calculate the average of
+    #[clap(name = "numbers")]
+    numbers: Vec<f64>,
+}
+
+#[derive(Parser, Debug)]
+struct Mode {
+    /// The numbers to calculate the mode
+    #[clap(required = true)]
+    numbers: Vec<f64>,
+}
+
+#[derive(Parser, Debug)]
+struct Medium {
+    /// The numbers to calculate the median
+    #[clap(name = "numbers", required = true)]
+    numbers: Vec<f64>,
+}
+
+fn create_table(headers: Vec<&str>) -> Table {
+    let mut table = Table::new();
+    
+    // Set up table styling
+    table
+        .set_header(headers)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_width(80)
+        .load_preset(comfy_table::presets::UTF8_BORDERS_ONLY);
+    
+    table
+}
+
+#[derive(Parser, Debug)]
+struct PaybackPeriod {
+    /// The list of cash flows
+    #[clap(short = 'c', long = "cash-flows", name = "cash-flows")]
+    cash_flows: Vec<f64>,
+
+    /// The initial cost of the investment
+    #[clap(short = 'i', long = "initial-cost", name = "initial-cost")]
+    initial_cost: f64,
+}
+
+#[derive(Parser, Debug)]
+struct BreakEven {
+    /// The total fixed costs incurred by the business
+    #[clap(short, long, name = "fixed-costs")]
+    fixed_costs: f64,
+
+    /// The variable costs per unit
+    #[clap(short = 'c', long, name = "variable-costs")]
+    variable_costs: f64,
+
+    /// The price per unit of the product or service
+    #[clap(short, long, name = "price-per-unit")]
+    price_per_unit: f64,
+}
+
+#[derive(Parser, Debug)]
+struct Depreciation {
+    /// The initial value of the asset
+    #[clap(short, long, name = "initial-value")]
+    initial_value: f64,
+
+    /// The salvage value of the asset
+    #[clap(short, long, name = "salvage-value")]
+    salvage_value: f64,
+
+    /// The useful life of the asset
+    #[clap(short, long, name = "useful-life")]
+    useful_life: f64,
+
+    /// The method of depreciation (e.g., straight-line, double-declining-balance)
+    #[clap(short, long, name = "depreciation-method")]
+    depreciation_method: String,
+}
+
+#[derive(Parser, Debug)]
+struct IRR {
+    /// The cash flows for the investment/project
+    #[clap(name = "cash-flows")]
+    cash_flows: Vec<f64>,
+}
+
+/// Format a number as currency with colored output
+fn format_currency(number: f64) -> String {
+    // Convert the f64 to a Decimal for accurate handling
+    let decimal = Decimal::from_f64(number)
+        .unwrap_or_else(|| {
+            warn!("Invalid number for currency formatting: {}", number);
+            Decimal::ZERO
+        });
+    
+    // Round to 2 decimal places
+    let rounded = decimal.round_dp(2);
+    
+    // Use the Decimal formatting functionality directly
+    let formatted = rounded.to_string();
+    
+    // Split into whole and decimal parts
+    let parts: Vec<&str> = formatted.split('.').collect();
+    let whole_part = parts[0];
+    let decimal_part = parts.get(1).map_or("00", |&s| {
+        if s.len() >= 2 { &s[0..2] } else { s }
+    });
+    
+    // Add commas to the whole part
+    let whole_with_commas = add_thousands_separators(whole_part);
+    
+    // Format as currency
+    if number >= 0.0 {
+        format!("${}.{}", whole_with_commas, decimal_part).green().to_string()
+    } else {
+        format!("${}.{}", whole_with_commas, decimal_part).red().to_string()
+    }
+}
+
+#[derive(Parser, Debug)]
+struct Variance {
+    /// The numbers to calculate the variance
+    #[clap(name = "numbers")]
+    numbers: Vec<String>,
+}
+
+#[derive(Parser, Debug)]
+struct StandardDeviation {
+    /// The numbers to calculate the standard deviation of.
+    #[clap(name = "numbers")]
+    numbers: Vec<f64>,
+}
+
+#[derive(Parser, Debug)]
+struct Probability {
+    /// The number of successful outcomes
+    #[clap(short, long)]
+    successes: u32,
+
+    /// The number of total trials
+    #[clap(short, long)]
+    trials: u32,
+}
+
+#[derive(Parser, Debug)]
+struct CAPM {
+    /// The risk-free rate
+    #[clap(short, long)]
+    risk_free_rate: f64,
+
+    /// The asset's beta coefficient
+    #[clap(short, long)]
+    beta: f64,
+
+    /// The expected return of the market
+    #[clap(short, long)]
+    market_return: f64,
+}
+
+/// Add thousands separators (commas) to a number string
+fn add_thousands_separators(number_str: &str) -> String {
+    let is_negative = number_str.starts_with('-');
+    let digits = if is_negative { &number_str[1..] } else { number_str };
+    
+    let mut result = String::new();
+    let len = digits.len();
+    
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (len - i) % 3 == 0 {
+            result.push(',');
+        }
+        result.push(c);
+    }
+    
+    if is_negative {
+        format!("-{}", result)
+    } else {
+        result
+    }
+}
+
+#[derive(Parser, Debug)]
+struct LoanPayment {
+    /// The principal amount of the loan
+    #[clap(short, long)]
+    principal: f64,
+
+    /// The annual interest rate of the loan
+    #[clap(short, long)]
+    interest_rate: f64,
+
+    /// The loan term in years
+    #[clap(short, long)]
+    loan_term: f64,
+}
+
+#[derive(Parser, Debug)]
+struct BreakEvenUnits {
+    /// The fixed costs incurred by the business
+    #[clap(short, long, name = "fixed-costs")]
+    fixed_costs: f64,
+
+    /// The variable costs per unit
+    #[clap(short = 'c', long, name = "variable-costs")]
+    variable_costs: f64,
+
+    /// The price per unit of the product or service
+    #[clap(short, long, name = "price-per-unit")]
+    price_per_unit: f64,
+}
+
+#[derive(Parser, Debug)]
+struct DCF {
+    /// The discount rate
+    #[clap(short, long, name = "discount-rate")]
+    discount_rate: f64,
+
+    /// The cash flows for the investment/project
+    #[clap(name = "cash-flows")]
+    cash_flows: Vec<f64>,
+}
+
+#[derive(Parser, Debug)]
+struct Mortgage {
+    /// The loan amount
+    #[clap(short, long, name = "loan-amount")]
+    loan_amount: f64,
+
+    /// The annual interest rate
+    #[clap(short, long, name = "interest-rate")]
+    interest_rate: f64,
+
+    /// The loan term in years
+    #[clap(short, long)]
+    term: i32,
+}
+
+#[derive(Parser, Debug)]
+struct WeightedAverage {
+    /// The numbers to calculate the weighted average of
+    #[clap(short, long)]
+    numbers: String,
+
+    /// The weights for each number
+    #[clap(short, long)]
+    weights: String,
+}
+
+#[derive(Parser, Debug)]
+struct WACC {
+    /// The cost of equity (Ke)
+    #[clap(long)]
+    cost_of_equity: f64,
+
+    /// The cost of debt (Kd)
+    #[clap(long)]
+    cost_of_debt: f64,
+
+    /// The tax rate
+    #[clap(long)]
+    tax_rate: f64,
+
+    /// The market value of equity (E)
+    #[clap(long)]
+    market_value_equity: f64,
+
+    /// The market value of debt (D)
+    #[clap(long)]
+    market_value_debt: f64,
+}
+
+
+#[derive(Parser, Debug)]
+struct Completion {
+    /// Shell to generate completions for
+    #[clap(value_enum)]
+    shell: Shell,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum Shell {
+    Bash,
+    Fish,
+    Zsh,
+    PowerShell,
+}
 
 /// Run the application with proper error handling
 fn run() -> Result<()> {
@@ -438,6 +1071,27 @@ fn run() -> Result<()> {
             info!("WACC calculation completed: {:.4}%", wacc_value * 100.0);
             Ok(())
         }
+
+        Command::ReturnOnEquity(roe) => {
+            roe.execute()
+        },
+        Command::Completion(completion) => {
+            debug!("Generating shell completions for: {:?}", completion.shell);
+            
+            let mut app = Opts::command();
+            let app_name = app.get_name().to_string();
+            
+            match completion.shell {
+                Shell::Bash => generate(Bash, &mut app, &app_name, &mut io::stdout()),
+                Shell::Fish => generate(Fish, &mut app, &app_name, &mut io::stdout()),
+                Shell::Zsh => generate(Zsh, &mut app, &app_name, &mut io::stdout()),
+                Shell::PowerShell => generate(PowerShell, &mut app, &app_name, &mut io::stdout()),
+            }
+            
+            info!("Shell completions generated successfully");
+            Ok(())
+        },
+
         _ => {
             // Handle any other commands that might be added in the future
             Err(anyhow::anyhow!("This command hasn't been implemented in the modernized version yet"))
