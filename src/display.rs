@@ -1,6 +1,6 @@
 //! Display and formatting utilities for financial data
 
-use comfy_table::{Cell, Color, ContentArrangement, Table};
+use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
 use rust_decimal::prelude::*;
 use log::warn;
 
@@ -14,13 +14,39 @@ use log::warn;
 pub fn create_table(headers: Vec<&str>) -> Table {
     let mut table = Table::new();
     
-    // Set up simple table styling for better alignment
+    // Set up table styling with proper column alignment
     table
         .set_header(headers)
-        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_content_arrangement(ContentArrangement::Disabled)  // Disable dynamic arrangement for consistent alignment
         .load_preset(comfy_table::presets::UTF8_BORDERS_ONLY);
     
     table
+}
+
+/// Adds a row to a table with proper dynamic alignment
+/// 
+/// # Arguments
+/// * `table` - Mutable reference to the table
+/// * `cells` - Vector of (value, alignment) pairs
+/// 
+/// # Examples
+/// ```
+/// use rusty_finance::display::{create_table, add_row};
+/// use comfy_table::CellAlignment;
+/// 
+/// let mut table = create_table(&["Account", "Balance"]);
+/// add_row(&mut table, &[
+///     ("Checking", CellAlignment::Left),
+///     ("$1,234.56", CellAlignment::Right),
+/// ]);
+/// ```
+pub fn add_row(table: &mut Table, cells: &[(&str, CellAlignment)]) {
+    let row: Vec<Cell> = cells
+        .iter()
+        .map(|(value, alignment)| Cell::new(value).set_alignment(*alignment))
+        .collect();
+    
+    table.add_row(row);
 }
 
 /// Formats a number as currency with colored output

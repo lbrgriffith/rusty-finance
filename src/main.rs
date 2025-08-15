@@ -381,18 +381,6 @@ struct Medium {
     numbers: Vec<f64>,
 }
 
-fn create_table(headers: Vec<&str>) -> Table {
-    let mut table = Table::new();
-    
-    // Set up table styling
-    table
-        .set_header(headers)
-        .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_width(80)
-        .load_preset(comfy_table::presets::UTF8_BORDERS_ONLY);
-    
-    table
-}
 
 #[derive(Parser, Debug)]
 struct PaybackPeriod {
@@ -713,14 +701,15 @@ fn run() -> Result<()> {
             
             info!("Calculated simple interest: {:.4}", result);
             
-            // Create and format table
+            // Create table using dynamic helper
             let mut table = create_table(vec!["Principal", "Rate", "Time", "Simple Interest"]);
             
-            table.add_row(vec![
-                format_currency(interest.principal),
-                format_rate_as_percentage(interest.rate),
-                format_years(interest.time),
-                format_currency(result),
+            // Add row with dynamic alignment - no manual padding needed
+            add_row(&mut table, &[
+                (&format_currency_plain(interest.principal), CellAlignment::Right),
+                (&format_rate_as_percentage(interest.rate), CellAlignment::Right),
+                (&format_years(interest.time), CellAlignment::Right),
+                (&format_currency_plain(result), CellAlignment::Right),
             ]);
             
             println!("{table}");
@@ -730,17 +719,20 @@ fn run() -> Result<()> {
         Command::CompoundInterest(ci) => {
             debug!("Calculating compound interest with: {:?}", ci);
             
-            // Create and format table
+            // Create table using dynamic helper
             let mut table = create_table(vec!["Year", "Amount"]);
             
             // Calculate compound interest for each year
+            // Interactive mode already converts percentage to decimal, CLI mode needs conversion
+            let rate = if ci.rate > 1.0 { ci.rate / 100.0 } else { ci.rate };
             for year in 1..=ci.t {
-                let amount = calculate_compound_interest(ci.principal, ci.rate, ci.n, year)
+                let amount = calculate_compound_interest(ci.principal, rate, ci.n, year)
                     .context("Failed to calculate compound interest")?;
                 
-                table.add_row(vec![
-                    format!("{}", year),
-                    format_currency(amount),
+                // Add row with dynamic alignment - no manual padding needed
+                add_row(&mut table, &[
+                    (&format!("{}", year), CellAlignment::Center),
+                    (&format_currency_plain(amount), CellAlignment::Right),
                 ]);
             }
             
@@ -758,11 +750,11 @@ fn run() -> Result<()> {
             
             let mut table = create_table(vec!["Future Value", "Rate", "Time", "Present Value"]);
             
-            table.add_row(vec![
-                format_currency(pv.future_value),
-                format_rate_as_percentage(pv.rate),
-                format_years(pv.time),
-                format_currency(result),
+            add_row(&mut table, &[
+                (&format_currency_plain(pv.future_value), CellAlignment::Right),
+                (&format_rate_as_percentage(pv.rate), CellAlignment::Right),
+                (&format_years(pv.time), CellAlignment::Right),
+                (&format_currency_plain(result), CellAlignment::Right),
             ]);
             
             println!("{table}");
@@ -779,11 +771,11 @@ fn run() -> Result<()> {
             
             let mut table = create_table(vec!["Present Value", "Rate", "Time", "Future Value"]);
             
-            table.add_row(vec![
-                format_currency(fv.present_value),
-                format_rate_as_percentage(fv.rate),
-                format_years(fv.time),
-                format_currency(result),
+            add_row(&mut table, &[
+                (&format_currency_plain(fv.present_value), CellAlignment::Right),
+                (&format_rate_as_percentage(fv.rate), CellAlignment::Right),
+                (&format_years(fv.time), CellAlignment::Right),
+                (&format_currency_plain(result), CellAlignment::Right),
             ]);
             
             println!("{table}");
@@ -806,10 +798,10 @@ fn run() -> Result<()> {
             for year in 1..=npv.lifespan {
                 let discounted_cash_flow = npv.cash_inflow / (1.0 + npv.discount_rate).powf(year as f64);
                 
-                table.add_row(vec![
-                    format!("{}", year),
-                    format_currency(npv.cash_inflow),
-                    format_currency(discounted_cash_flow),
+                add_row(&mut table, &[
+                    (&format!("{}", year), CellAlignment::Center),
+                    (&format_currency_plain(npv.cash_inflow), CellAlignment::Right),
+                    (&format_currency_plain(discounted_cash_flow), CellAlignment::Right),
                 ]);
             }
             
@@ -834,10 +826,10 @@ fn run() -> Result<()> {
             
             let mut table = create_table(vec!["Net Profit", "Cost of Investment", "ROI"]);
             
-            table.add_row(vec![
-                format_currency(roi.net_profit),
-                format_currency(roi.cost_of_investment),
-                format_percentage(roi_value / 100.0, 2),
+            add_row(&mut table, &[
+                (&format_currency_plain(roi.net_profit), CellAlignment::Right),
+                (&format_currency_plain(roi.cost_of_investment), CellAlignment::Right),
+                (&format_percentage_plain(roi_value / 100.0, 2), CellAlignment::Right),
             ]);
             
             println!("{table}");
@@ -853,10 +845,14 @@ fn run() -> Result<()> {
             let mut table = create_table(vec!["Number"]);
             
             for number in &average.numbers {
-                table.add_row(vec![format!("{:.2}", number)]);
+                add_row(&mut table, &[
+                    (&format!("{:.2}", number), CellAlignment::Right),
+                ]);
             }
             
-            table.add_row(vec![format!("Average: {:.2}", avg)]);
+            add_row(&mut table, &[
+                (&format!("Average: {:.2}", avg), CellAlignment::Right),
+            ]);
             
             println!("{table}");
             info!("Average calculation completed: {:.4}", avg);
@@ -871,12 +867,21 @@ fn run() -> Result<()> {
             let mut table = create_table(vec!["Number", "Mode"]);
             
             for number in &mode.numbers {
-                table.add_row(vec![format!("{:.2}", number), "".to_string()]);
+                add_row(&mut table, &[
+                    (&format!("{:.2}", number), CellAlignment::Right),
+                    ("", CellAlignment::Left),
+                ]);
             }
             
             match mode_value {
-                Some(m) => table.add_row(vec!["Mode:".to_string(), format!("{:.2}", m)]),
-                None => table.add_row(vec!["Mode:".to_string(), "No mode".to_string()]),
+                Some(m) => add_row(&mut table, &[
+                    ("Mode:", CellAlignment::Left),
+                    (&format!("{:.2}", m), CellAlignment::Right),
+                ]),
+                None => add_row(&mut table, &[
+                    ("Mode:", CellAlignment::Left),
+                    ("No mode", CellAlignment::Left),
+                ]),
             };
             
             println!("{table}");
@@ -896,10 +901,14 @@ fn run() -> Result<()> {
             sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
             
             for number in &sorted {
-                table.add_row(vec![format!("{:.2}", number)]);
+                add_row(&mut table, &[
+                    (&format!("{:.2}", number), CellAlignment::Right),
+                ]);
             }
             
-            table.add_row(vec![format!("Median: {:.2}", median)]);
+            add_row(&mut table, &[
+                (&format!("Median: {:.2}", median), CellAlignment::Right),
+            ]);
             
             println!("{table}");
             info!("Median calculation completed: {:.4}", median);
@@ -918,10 +927,10 @@ fn run() -> Result<()> {
                 None => "Never pays back".to_string(),
             };
             
-            table.add_row(vec![
-                format!("{:?}", payback.cash_flows),
-                format_currency(payback.initial_cost),
-                payback_str,
+            add_row(&mut table, &[
+                (&format!("{:?}", payback.cash_flows), CellAlignment::Left),
+                (&format_currency_plain(payback.initial_cost), CellAlignment::Right),
+                (&payback_str, CellAlignment::Right),
             ]);
             
             println!("{table}");
@@ -991,11 +1000,11 @@ fn run() -> Result<()> {
             // Show selected payments (first, every 12th, and last)
             for payment in &schedule {
                 if payment.month == 1 || payment.month % 12 == 0 || payment.month == schedule.len() as u32 {
-                    table.add_row(vec![
-                        format!("{}", payment.month),
-                        format_currency(payment.principal_payment),
-                        format_currency(payment.interest_payment),
-                        format_currency(payment.remaining_balance),
+                    add_row(&mut table, &[
+                        (&format!("{}", payment.month), CellAlignment::Center),
+                        (&format_currency_plain(payment.principal_payment), CellAlignment::Right),
+                        (&format_currency_plain(payment.interest_payment), CellAlignment::Right),
+                        (&format_currency_plain(payment.remaining_balance), CellAlignment::Right),
                     ]);
                 }
             }
@@ -1014,10 +1023,10 @@ fn run() -> Result<()> {
             
             let mut table = create_table(vec!["Net Income", "Equity", "Return on Equity"]);
             
-            table.add_row(vec![
-                format_currency(roe.net_income),
-                format_currency(roe.equity),
-                format_percentage(roe_value / 100.0, 2),
+            add_row(&mut table, &[
+                (&format_currency_plain(roe.net_income), CellAlignment::Right),
+                (&format_currency_plain(roe.equity), CellAlignment::Right),
+                (&format_percentage_plain(roe_value / 100.0, 2), CellAlignment::Right),
             ]);
             
             println!("{table}");
@@ -1034,10 +1043,10 @@ fn run() -> Result<()> {
             
             let mut table = create_table(vec!["Dividend", "Price", "Dividend Yield"]);
             
-            table.add_row(vec![
-                format!("{:.2}", dividend_yield.dividend),
-                format!("{:.2}", dividend_yield.price),
-                format_percentage(result / 100.0, 2),
+            add_row(&mut table, &[
+                (&format!("{:.2}", dividend_yield.dividend), CellAlignment::Right),
+                (&format!("{:.2}", dividend_yield.price), CellAlignment::Right),
+                (&format_percentage_plain(result, 2), CellAlignment::Right),
             ]);
             
             println!("{table}");
