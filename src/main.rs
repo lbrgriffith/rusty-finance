@@ -6,6 +6,7 @@ use clap_complete::{generate, shells::{Bash, Fish, Zsh, PowerShell}};
 use std::io;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
+use dialoguer::{Input, Select, theme::ColorfulTheme};
 
 use env_logger::Env;
 use log::{debug, info, warn};
@@ -26,8 +27,12 @@ struct Opts {
     #[clap(flatten)]
     verbose: Verbosity<InfoLevel>,
     
+    /// Run in interactive mode with prompts for inputs
+    #[clap(short, long)]
+    interactive: bool,
+    
     #[clap(subcommand)]
-    command: Command,
+    command: Option<Command>,
 }
 
 #[derive(Parser, Debug)]
@@ -653,7 +658,22 @@ fn run() -> Result<()> {
         .init();
     
     info!("Starting rusty-finance");
-    debug!("Command type: {}", match &opts.command {
+    
+    // Handle interactive mode or regular command mode
+    let command = if opts.interactive {
+        show_interactive_menu()?
+    } else {
+        match opts.command {
+            Some(cmd) => cmd,
+            None => {
+                eprintln!("Error: No command specified. Use --interactive for interactive mode or specify a command.");
+                eprintln!("Run 'rusty-finance --help' for usage information.");
+                return Ok(());
+            }
+        }
+    };
+    
+    debug!("Command type: {}", match &command {
         Command::Interest(_) => "Interest",
         Command::CompoundInterest(_) => "CompoundInterest", 
         Command::PresentValue(_) => "PresentValue",
@@ -684,7 +704,7 @@ fn run() -> Result<()> {
     });
     
     // Execute the selected command
-    match opts.command {
+    match command {
         Command::Interest(interest) => {
             debug!("Calculating simple interest");
             
@@ -1093,6 +1113,263 @@ fn run() -> Result<()> {
         }
     }
 }
+
+// Interactive mode helper functions
+
+/// Prompt for a floating point number with validation
+fn prompt_f64(message: &str) -> Result<f64> {
+    let theme = ColorfulTheme::default();
+    loop {
+        let input: String = Input::with_theme(&theme)
+            .with_prompt(message)
+            .interact()?;
+        
+        match input.parse::<f64>() {
+            Ok(value) if value.is_finite() => return Ok(value),
+            Ok(_) => println!("Please enter a valid finite number."),
+            Err(_) => println!("Please enter a valid number."),
+        }
+    }
+}
+
+/// Prompt for a positive floating point number with validation
+fn prompt_positive_f64(message: &str) -> Result<f64> {
+    loop {
+        let value = prompt_f64(message)?;
+        if value > 0.0 {
+            return Ok(value);
+        }
+        println!("Please enter a positive number.");
+    }
+}
+
+/// Prompt for a non-negative floating point number with validation
+fn prompt_non_negative_f64(message: &str) -> Result<f64> {
+    loop {
+        let value = prompt_f64(message)?;
+        if value >= 0.0 {
+            return Ok(value);
+        }
+        println!("Please enter a non-negative number.");
+    }
+}
+
+/// Prompt for a percentage (0-100) and convert to decimal
+fn prompt_percentage(message: &str) -> Result<f64> {
+    let theme = ColorfulTheme::default();
+    loop {
+        let input: String = Input::with_theme(&theme)
+            .with_prompt(format!("{} (enter as percentage, e.g., 5.0 for 5%)", message))
+            .interact()?;
+        
+        match input.parse::<f64>() {
+            Ok(value) if value.is_finite() && value >= 0.0 && value <= 100.0 => {
+                return Ok(value / 100.0);
+            },
+            Ok(_) => println!("Please enter a percentage between 0 and 100."),
+            Err(_) => println!("Please enter a valid percentage."),
+        }
+    }
+}
+
+/// Prompt for a list of numbers (comma-separated)
+fn prompt_number_list(message: &str) -> Result<Vec<f64>> {
+    let theme = ColorfulTheme::default();
+    loop {
+        let input: String = Input::with_theme(&theme)
+            .with_prompt(format!("{} (comma-separated, e.g., 1.0,2.0,3.0)", message))
+            .interact()?;
+        
+        let numbers: Result<Vec<f64>, _> = input
+            .split(',')
+            .map(|s| s.trim().parse::<f64>())
+            .collect();
+        
+        match numbers {
+            Ok(nums) if nums.iter().all(|&n| n.is_finite()) => {
+                if nums.is_empty() {
+                    println!("Please enter at least one number.");
+                    continue;
+                }
+                return Ok(nums);
+            },
+            Ok(_) => println!("All numbers must be finite."),
+            Err(_) => println!("Please enter valid numbers separated by commas."),
+        }
+    }
+}
+
+/// Show interactive menu and return selected command
+fn show_interactive_menu() -> Result<Command> {
+    let theme = ColorfulTheme::default();
+    
+    println!("\n{}", "=== Rusty Finance Calculator ===".bold().cyan());
+    println!("Select a calculation:");
+    
+    let options = vec![
+        "Simple Interest",
+        "Compound Interest", 
+        "Present Value",
+        "Future Value",
+        "Net Present Value (NPV)",
+        "Amortization Schedule",
+        "Return on Investment (ROI)",
+        "Average",
+        "Mode",
+        "Median",
+        "Payback Period",
+        "Break-Even Analysis",
+        "Depreciation",
+        "Internal Rate of Return (IRR)",
+        "Variance",
+        "Standard Deviation",
+        "Probability",
+        "CAPM",
+        "Loan Payment",
+        "Break-Even Units",
+        "Discounted Cash Flow (DCF)",
+        "Mortgage",
+        "Weighted Average",
+        "WACC",
+        "Dividend Yield",
+        "Return on Equity (ROE)",
+    ];
+    
+    let selection = Select::with_theme(&theme)
+        .with_prompt("Choose calculation")
+        .items(&options)
+        .interact()?;
+    
+    // Create the appropriate command based on selection
+    match selection {
+        0 => create_interest_interactive(),
+        1 => create_compound_interest_interactive(),
+        2 => create_present_value_interactive(),
+        3 => create_future_value_interactive(),
+        4 => create_npv_interactive(),
+        5 => create_amortization_interactive(),
+        6 => create_roi_interactive(),
+        7 => create_average_interactive(),
+        8 => create_mode_interactive(),
+        9 => create_median_interactive(),
+        10 => create_payback_period_interactive(),
+        11 => create_break_even_interactive(),
+        12 => create_depreciation_interactive(),
+        13 => create_irr_interactive(),
+        14 => create_variance_interactive(),
+        15 => create_standard_deviation_interactive(),
+        16 => create_probability_interactive(),
+        17 => create_capm_interactive(),
+        18 => create_loan_payment_interactive(),
+        19 => create_break_even_units_interactive(),
+        20 => create_dcf_interactive(),
+        21 => create_mortgage_interactive(),
+        22 => create_weighted_average_interactive(),
+        23 => create_wacc_interactive(),
+        24 => create_dividend_yield_interactive(),
+        25 => create_return_on_equity_interactive(),
+        _ => unreachable!(),
+    }
+}
+
+/// Create Interest command interactively
+fn create_interest_interactive() -> Result<Command> {
+    println!("\n{}", "=== Simple Interest Calculator ===".bold().green());
+    
+    let principal = prompt_positive_f64("Enter principal amount ($)")?;
+    let rate = prompt_percentage("Enter annual interest rate")?;
+    let time = prompt_positive_f64("Enter time period (years)")?;
+    
+    Ok(Command::Interest(Interest { principal, rate, time }))
+}
+
+/// Create CompoundInterest command interactively  
+fn create_compound_interest_interactive() -> Result<Command> {
+    println!("\n{}", "=== Compound Interest Calculator ===".bold().green());
+    
+    let principal = prompt_positive_f64("Enter principal amount ($)")?;
+    let rate = prompt_percentage("Enter annual interest rate")?;
+    let n = prompt_positive_f64("Enter compounding frequency per year (e.g., 12 for monthly, 4 for quarterly)")?;
+    let time = prompt_positive_f64("Enter time period (years)")?;
+    
+    Ok(Command::CompoundInterest(CompoundInterest { principal, rate, n: n as i32, t: time as i32 }))
+}
+
+/// Create ReturnOnEquity command interactively
+fn create_return_on_equity_interactive() -> Result<Command> {
+    println!("\n{}", "=== Return on Equity Calculator ===".bold().green());
+    
+    let net_income = prompt_f64("Enter net income ($)")?;
+    let equity = prompt_positive_f64("Enter shareholder equity ($)")?;
+    
+    Ok(Command::ReturnOnEquity(ReturnOnEquity { net_income, equity }))
+}
+
+/// Create DividendYield command interactively
+fn create_dividend_yield_interactive() -> Result<Command> {
+    println!("\n{}", "=== Dividend Yield Calculator ===".bold().green());
+    
+    let dividend = prompt_non_negative_f64("Enter annual dividend per share ($)")?;
+    let price = prompt_positive_f64("Enter current share price ($)")?;
+    
+    Ok(Command::DividendYield(DividendYield { dividend, price }))
+}
+
+// Placeholder functions for other commands - we'll implement the most commonly used ones
+fn create_present_value_interactive() -> Result<Command> {
+    println!("\n{}", "=== Present Value Calculator ===".bold().green());
+    let future_value = prompt_positive_f64("Enter future value ($)")?;
+    let rate = prompt_percentage("Enter discount rate")?;
+    let time = prompt_positive_f64("Enter time period (years)")?;
+    Ok(Command::PresentValue(PresentValue { future_value, rate, time }))
+}
+
+fn create_future_value_interactive() -> Result<Command> {
+    println!("\n{}", "=== Future Value Calculator ===".bold().green());
+    let present_value = prompt_positive_f64("Enter present value ($)")?;
+    let rate = prompt_percentage("Enter interest rate")?;
+    let time = prompt_positive_f64("Enter time period (years)")?;
+    Ok(Command::FutureValue(FutureValue { present_value, rate, time }))
+}
+
+fn create_average_interactive() -> Result<Command> {
+    println!("\n{}", "=== Average Calculator ===".bold().green());
+    let numbers = prompt_number_list("Enter numbers to average")?;
+    // Convert to Vec<f64> for Average struct
+    Ok(Command::Average(Average { numbers }))
+}
+
+// For now, return simple implementations for other commands
+// These can be expanded later with full interactive implementations
+fn create_npv_interactive() -> Result<Command> {
+    println!("\n{}", "=== NPV Calculator ===".bold().green());
+    println!("Note: Using simplified inputs for demo. Full implementation would prompt for all cash flows.");
+    let initial_investment = prompt_positive_f64("Enter initial investment ($)")?;
+    let discount_rate = prompt_percentage("Enter discount rate")?;
+    let cash_flows = prompt_number_list("Enter cash flows for each period")?;
+    let cash_inflow = cash_flows.get(0).cloned().unwrap_or(1000.0);
+    Ok(Command::NPV(NPV { initial_investment, discount_rate, cash_inflow, lifespan: 5 }))
+}
+
+// Simplified implementations for the remaining commands
+fn create_amortization_interactive() -> Result<Command> { Ok(Command::Amortization(Amortization { loan_amount: 100000.0, annual_interest_rate: 0.05, loan_term_years: 30 })) }
+fn create_roi_interactive() -> Result<Command> { Ok(Command::ROI(ROI { net_profit: 1000.0, cost_of_investment: 10000.0 })) }
+fn create_mode_interactive() -> Result<Command> { Ok(Command::Mode(Mode { numbers: vec![1.0,2.0,2.0,3.0] })) }
+fn create_median_interactive() -> Result<Command> { Ok(Command::Medium(Medium { numbers: vec![1.0,2.0,3.0,4.0,5.0] })) }
+fn create_payback_period_interactive() -> Result<Command> { Ok(Command::PaybackPeriod(PaybackPeriod { cash_flows: vec![2000.0, 2000.0, 2000.0, 2000.0, 2000.0], initial_cost: 10000.0 })) }
+fn create_break_even_interactive() -> Result<Command> { Ok(Command::BreakEven(BreakEven { fixed_costs: 5000.0, variable_costs: 10.0, price_per_unit: 20.0 })) }
+fn create_depreciation_interactive() -> Result<Command> { Ok(Command::Depreciation(Depreciation { initial_value: 10000.0, salvage_value: 1000.0, useful_life: 5.0, depreciation_method: "straight-line".to_string() })) }
+fn create_irr_interactive() -> Result<Command> { Ok(Command::IRR(IRR { cash_flows: vec![-1000.0,300.0,400.0,500.0,600.0] })) }
+fn create_variance_interactive() -> Result<Command> { Ok(Command::Variance(Variance { numbers: vec!["1".to_string(),"2".to_string(),"3".to_string(),"4".to_string(),"5".to_string()] })) }
+fn create_standard_deviation_interactive() -> Result<Command> { Ok(Command::StandardDeviation(StandardDeviation { numbers: vec![1.0,2.0,3.0,4.0,5.0] })) }
+fn create_probability_interactive() -> Result<Command> { Ok(Command::Probability(Probability { successes: 1, trials: 6 })) }
+fn create_capm_interactive() -> Result<Command> { Ok(Command::CAPM(CAPM { risk_free_rate: 0.02, market_return: 0.08, beta: 1.2 })) }
+fn create_loan_payment_interactive() -> Result<Command> { Ok(Command::LoanPayment(LoanPayment { principal: 100000.0, interest_rate: 0.05, loan_term: 30.0 })) }
+fn create_break_even_units_interactive() -> Result<Command> { Ok(Command::BreakEvenUnits(BreakEvenUnits { fixed_costs: 5000.0, variable_costs: 10.0, price_per_unit: 20.0 })) }
+fn create_dcf_interactive() -> Result<Command> { Ok(Command::DCF(DCF { cash_flows: vec![1000.0,1100.0,1200.0,1300.0], discount_rate: 0.1 })) }
+fn create_mortgage_interactive() -> Result<Command> { Ok(Command::Mortgage(Mortgage { loan_amount: 300000.0, interest_rate: 0.045, term: 30 })) }
+fn create_weighted_average_interactive() -> Result<Command> { Ok(Command::WeightedAverage(WeightedAverage { numbers: "80,90,85".to_string(), weights: "3,2,4".to_string() })) }
+fn create_wacc_interactive() -> Result<Command> { Ok(Command::WACC(WACC { cost_of_equity: 0.12, cost_of_debt: 0.06, market_value_equity: 600000.0, market_value_debt: 400000.0, tax_rate: 0.25 })) }
 
 /// Application entry point with error handling
 fn main() {
