@@ -1,5 +1,5 @@
 //! Rusty Finance Library
-//! 
+//!
 //! A comprehensive financial calculation library providing functions for:
 //! - Interest calculations (simple and compound)
 //! - Present and future value calculations
@@ -21,13 +21,13 @@ pub mod display;
 pub enum FinanceError {
     #[error("Invalid input: {0}")]
     InvalidInput(String),
-    
+
     #[error("Division by zero")]
     DivisionByZero,
-    
+
     #[error("Calculation overflow")]
     Overflow,
-    
+
     #[error("Convergence failed")]
     ConvergenceFailed,
 }
@@ -38,10 +38,16 @@ pub type FinanceResult<T> = Result<T, FinanceError>;
 /// Validates that a number is finite and positive
 pub fn validate_positive(value: f64, name: &str) -> FinanceResult<()> {
     if !value.is_finite() {
-        return Err(FinanceError::InvalidInput(format!("{} must be a valid number: {}", name, value)));
+        return Err(FinanceError::InvalidInput(format!(
+            "{} must be a valid number: {}",
+            name, value
+        )));
     }
     if value <= 0.0 {
-        return Err(FinanceError::InvalidInput(format!("{} must be positive: {}", name, value)));
+        return Err(FinanceError::InvalidInput(format!(
+            "{} must be positive: {}",
+            name, value
+        )));
     }
     Ok(())
 }
@@ -49,10 +55,16 @@ pub fn validate_positive(value: f64, name: &str) -> FinanceResult<()> {
 /// Validates that a number is finite and non-negative
 pub fn validate_non_negative(value: f64, name: &str) -> FinanceResult<()> {
     if !value.is_finite() {
-        return Err(FinanceError::InvalidInput(format!("{} must be a valid number: {}", name, value)));
+        return Err(FinanceError::InvalidInput(format!(
+            "{} must be a valid number: {}",
+            name, value
+        )));
     }
     if value < 0.0 {
-        return Err(FinanceError::InvalidInput(format!("{} must be non-negative: {}", name, value)));
+        return Err(FinanceError::InvalidInput(format!(
+            "{} must be non-negative: {}",
+            name, value
+        )));
     }
     Ok(())
 }
@@ -60,7 +72,10 @@ pub fn validate_non_negative(value: f64, name: &str) -> FinanceResult<()> {
 /// Validates that a number is finite
 pub fn validate_finite(value: f64, name: &str) -> FinanceResult<()> {
     if !value.is_finite() {
-        return Err(FinanceError::InvalidInput(format!("{} must be a valid number: {}", name, value)));
+        return Err(FinanceError::InvalidInput(format!(
+            "{} must be a valid number: {}",
+            name, value
+        )));
     }
     Ok(())
 }
@@ -74,14 +89,15 @@ pub fn to_decimal(value: f64, name: &str) -> FinanceResult<Decimal> {
 /// Validates that a number is within safe calculation range
 pub fn validate_calculation_range(value: f64, name: &str) -> FinanceResult<()> {
     validate_finite(value, name)?;
-    
+
     // Check for values that could cause overflow in financial calculations
     if value.abs() > 1e15 {
-        return Err(FinanceError::InvalidInput(
-            format!("{} value too large for safe calculation: {}", name, value)
-        ));
+        return Err(FinanceError::InvalidInput(format!(
+            "{} value too large for safe calculation: {}",
+            name, value
+        )));
     }
-    
+
     Ok(())
 }
 
@@ -89,13 +105,13 @@ pub fn validate_calculation_range(value: f64, name: &str) -> FinanceResult<()> {
 pub fn safe_multiply(a: f64, b: f64) -> FinanceResult<f64> {
     validate_finite(a, "first operand")?;
     validate_finite(b, "second operand")?;
-    
+
     let result = a * b;
-    
+
     if !result.is_finite() {
         return Err(FinanceError::Overflow);
     }
-    
+
     Ok(result)
 }
 
@@ -103,17 +119,17 @@ pub fn safe_multiply(a: f64, b: f64) -> FinanceResult<f64> {
 pub fn safe_divide(a: f64, b: f64) -> FinanceResult<f64> {
     validate_finite(a, "dividend")?;
     validate_finite(b, "divisor")?;
-    
+
     if b == 0.0 {
         return Err(FinanceError::DivisionByZero);
     }
-    
+
     let result = a / b;
-    
+
     if !result.is_finite() {
         return Err(FinanceError::Overflow);
     }
-    
+
     Ok(result)
 }
 
@@ -121,20 +137,21 @@ pub fn safe_divide(a: f64, b: f64) -> FinanceResult<f64> {
 pub fn safe_power(base: f64, exponent: f64) -> FinanceResult<f64> {
     validate_finite(base, "base")?;
     validate_finite(exponent, "exponent")?;
-    
+
     // Check for potentially dangerous exponential operations
     if exponent.abs() > 100.0 {
-        return Err(FinanceError::InvalidInput(
-            format!("Exponent too large for safe calculation: {}", exponent)
-        ));
+        return Err(FinanceError::InvalidInput(format!(
+            "Exponent too large for safe calculation: {}",
+            exponent
+        )));
     }
-    
+
     let result = base.powf(exponent);
-    
+
     if !result.is_finite() {
         return Err(FinanceError::Overflow);
     }
-    
+
     Ok(result)
 }
 

@@ -3,12 +3,12 @@
 pub mod interest;
 pub mod investment;
 pub mod loan;
-pub mod statistics;
 pub mod ratios;
+pub mod statistics;
 
 // Re-export commonly used functions
 pub use interest::*;
 pub use investment::*;
 pub use loan::*;
-pub use statistics::*;
 pub use ratios::*;
+pub use statistics::*;

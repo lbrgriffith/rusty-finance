@@ -10,7 +10,7 @@ pub struct Opts {
     /// Verbosity level for logging
     #[clap(flatten)]
     pub verbose: Verbosity<InfoLevel>,
-    
+
     #[clap(subcommand)]
     pub command: Command,
 }
@@ -19,80 +19,80 @@ pub struct Opts {
 pub enum Command {
     /// Calculates simple interest.
     Interest(Interest),
-    
+
     /// Calculates compound interest.
     CompoundInterest(CompoundInterest),
-    
+
     /// Calculates present value.
     PresentValue(PresentValue),
-    
+
     /// Calculates future value.
     FutureValue(FutureValue),
-    
+
     /// Calculates net present value.
     NPV(NPV),
-    
+
     /// Calculates an amortization schedule.
     Amortization(Amortization),
-    
+
     /// Calculates the return on investment (ROI).
     ROI(ROI),
-    
+
     /// Calculates the average of a series of numbers.
     Average(Average),
-    
+
     /// Calculates the mode of a series of numbers.
     Mode(Mode),
-    
+
     /// Calculates the median of a series of numbers.
     Medium(Medium),
-    
+
     /// Calculates the payback period.
     PaybackPeriod(PaybackPeriod),
-    
+
     /// Performs break-even analysis.
     BreakEven(BreakEven),
-    
+
     /// Calculates the depreciation of an asset.
     Depreciation(Depreciation),
-    
+
     /// Calculates the internal rate of return (IRR).
     IRR(IRR),
-    
+
     /// Calculates the variance of a series of numbers.
     Variance(Variance),
-    
+
     /// Calculates the standard deviation of a series of numbers.
     StandardDeviation(StandardDeviation),
-    
+
     /// Calculates probability.
     Probability(Probability),
-    
+
     /// Calculates the expected return on an investment based on its risk and market factors.
     CAPM(CAPM),
-    
+
     /// Calculate loan payments, including the monthly payment amount, total interest paid, and the loan payoff date.
     LoanPayment(LoanPayment),
-    
+
     /// Calculate the number of units a business needs to sell to break even.
     BreakEvenUnits(BreakEvenUnits),
-    
+
     /// Calculate the discounted cash flow.
     DCF(DCF),
-    
+
     /// Calculates mortgage payments, total interest paid, and loan payoff date
     Mortgage(Mortgage),
-    
+
     /// Calculates the weighted average of a series of numbers.
     #[clap(name = "weighted-average")]
     WeightedAverage(WeightedAverage),
-    
+
     /// Calculates the weighted average cost of capital (WACC).
     WACC(WACC),
-    
+
     /// Calculates the dividend yield.
     DividendYield(DividendYield),
-    
+
     /// Calculates the return on equity (ROE).
     ReturnOnEquity(ReturnOnEquity),
 }

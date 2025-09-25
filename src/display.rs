@@ -1,40 +1,40 @@
 //! Display and formatting utilities for financial data
 
 use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
-use rust_decimal::prelude::*;
 use log::warn;
+use rust_decimal::prelude::*;
 
 /// Creates a styled table with the given headers
-/// 
+///
 /// # Arguments
 /// * `headers` - Vector of header strings
-/// 
+///
 /// # Returns
 /// * A configured `Table` instance ready for data rows
 pub fn create_table(headers: Vec<&str>) -> Table {
     let mut table = Table::new();
-    
+
     // Set up table styling with proper column alignment
     table
         .set_header(headers)
-        .set_content_arrangement(ContentArrangement::Disabled)  // Disable dynamic arrangement for consistent alignment
+        .set_content_arrangement(ContentArrangement::Disabled) // Disable dynamic arrangement for consistent alignment
         .load_preset(comfy_table::presets::UTF8_BORDERS_ONLY);
-    
+
     table
 }
 
 /// Adds a row to a table with proper dynamic alignment
-/// 
+///
 /// # Arguments
 /// * `table` - Mutable reference to the table
 /// * `cells` - Vector of (value, alignment) pairs
-/// 
+///
 /// # Examples
 /// ```
 /// use rusty_finance::display::{create_table, add_row};
 /// use comfy_table::CellAlignment;
-/// 
-/// let mut table = create_table(&["Account", "Balance"]);
+///
+/// let mut table = create_table(vec!["Account", "Balance"]);
 /// add_row(&mut table, &[
 ///     ("Checking", CellAlignment::Left),
 ///     ("$1,234.56", CellAlignment::Right),
@@ -45,22 +45,22 @@ pub fn add_row(table: &mut Table, cells: &[(&str, CellAlignment)]) {
         .iter()
         .map(|(value, alignment)| Cell::new(value).set_alignment(*alignment))
         .collect();
-    
+
     table.add_row(row);
 }
 
 /// Formats a number as currency with colored output
-/// 
+///
 /// # Arguments
 /// * `number` - The number to format as currency
-/// 
+///
 /// # Returns
 /// * A formatted currency string with appropriate coloring
-/// 
+///
 /// # Examples
 /// ```
 /// use rusty_finance::display::format_currency;
-/// 
+///
 /// let formatted = format_currency(1234.56);
 /// // Returns something like "$1,234.56" in green (for positive) or red (for negative)
 /// ```
@@ -69,46 +69,45 @@ pub fn format_currency(number: f64) -> String {
 }
 
 /// Formats a number as currency without colors for better table alignment
-/// 
+///
 /// # Arguments
 /// * `number` - The number to format as currency
-/// 
+///
 /// # Returns
 /// * A formatted currency string without color codes
 pub fn format_currency_plain(number: f64) -> String {
     // Convert the f64 to a Decimal for accurate handling
-    let decimal = Decimal::from_f64(number)
-        .unwrap_or_else(|| {
-            warn!("Invalid number for currency formatting: {}", number);
-            Decimal::ZERO
-        });
-    
+    let decimal = Decimal::from_f64(number).unwrap_or_else(|| {
+        warn!("Invalid number for currency formatting: {}", number);
+        Decimal::ZERO
+    });
+
     // Round to 2 decimal places
     let rounded = decimal.round_dp(2);
-    
+
     // Use the Decimal formatting functionality directly
     let formatted = rounded.to_string();
-    
+
     // Split into whole and decimal parts
     let parts: Vec<&str> = formatted.split('.').collect();
     let whole_part = parts[0];
-    let decimal_part = parts.get(1).map_or("00", |&s| {
-        if s.len() >= 2 { &s[0..2] } else { s }
-    });
-    
+    let decimal_part = parts
+        .get(1)
+        .map_or("00", |&s| if s.len() >= 2 { &s[0..2] } else { s });
+
     // Add commas to the whole part
     let whole_with_commas = add_thousands_separators(whole_part);
-    
+
     // Format as currency without colors
     format!("${}.{}", whole_with_commas, decimal_part)
 }
 
 /// Formats a percentage with appropriate coloring
-/// 
+///
 /// # Arguments
 /// * `value` - The decimal value to format as percentage (0.05 = 5%)
 /// * `decimal_places` - Number of decimal places to show
-/// 
+///
 /// # Returns
 /// * A formatted percentage string with appropriate coloring
 pub fn format_percentage(value: f64, decimal_places: usize) -> String {
@@ -116,11 +115,11 @@ pub fn format_percentage(value: f64, decimal_places: usize) -> String {
 }
 
 /// Formats a percentage without colors for better table alignment
-/// 
+///
 /// # Arguments
 /// * `value` - The decimal value to format as percentage (0.05 = 5%)
 /// * `decimal_places` - Number of decimal places to show
-/// 
+///
 /// # Returns
 /// * A formatted percentage string without color codes
 pub fn format_percentage_plain(value: f64, decimal_places: usize) -> String {
@@ -129,11 +128,11 @@ pub fn format_percentage_plain(value: f64, decimal_places: usize) -> String {
 }
 
 /// Formats a number with commas as thousands separators
-/// 
+///
 /// # Arguments
 /// * `number` - The number to format
 /// * `decimal_places` - Number of decimal places to show
-/// 
+///
 /// # Returns
 /// * A formatted number string with commas
 pub fn format_number(number: f64, decimal_places: usize) -> String {
@@ -141,9 +140,9 @@ pub fn format_number(number: f64, decimal_places: usize) -> String {
     let parts: Vec<&str> = formatted.split('.').collect();
     let whole_part = parts[0];
     let decimal_part = parts.get(1);
-    
+
     let whole_with_commas = add_thousands_separators(whole_part);
-    
+
     if let Some(decimals) = decimal_part {
         format!("{}.{}", whole_with_commas, decimals)
     } else {
@@ -152,26 +151,30 @@ pub fn format_number(number: f64, decimal_places: usize) -> String {
 }
 
 /// Adds thousands separators (commas) to a number string
-/// 
+///
 /// # Arguments
 /// * `number_str` - The number string to add separators to
-/// 
+///
 /// # Returns
 /// * The number string with comma separators
 fn add_thousands_separators(number_str: &str) -> String {
     let is_negative = number_str.starts_with('-');
-    let digits = if is_negative { &number_str[1..] } else { number_str };
-    
+    let digits = if is_negative {
+        &number_str[1..]
+    } else {
+        number_str
+    };
+
     let mut result = String::new();
     let len = digits.len();
-    
+
     for (i, c) in digits.chars().enumerate() {
         if i > 0 && (len - i) % 3 == 0 {
             result.push(',');
         }
         result.push(c);
     }
-    
+
     if is_negative {
         format!("-{}", result)
     } else {
@@ -180,32 +183,29 @@ fn add_thousands_separators(number_str: &str) -> String {
 }
 
 /// Creates a summary table for financial calculations
-/// 
+///
 /// # Arguments
 /// * `title` - The title of the summary
 /// * `items` - Vector of (label, value) pairs
-/// 
+///
 /// # Returns
 /// * A formatted table showing the summary
 pub fn create_summary_table(title: &str, items: Vec<(&str, String)>) -> Table {
     let mut table = create_table(vec![title, "Value"]);
-    
+
     for (label, value) in items {
-        table.add_row(vec![
-            label.to_string(),
-            value,
-        ]);
+        table.add_row(vec![label.to_string(), value]);
     }
-    
+
     table
 }
 
 /// Creates a colored cell based on a numeric value
-/// 
+///
 /// # Arguments
 /// * `value` - The text content of the cell
 /// * `numeric_value` - The numeric value to determine color
-/// 
+///
 /// # Returns
 /// * A `Cell` with appropriate color formatting
 pub fn create_colored_cell(value: &str, numeric_value: f64) -> Cell {
@@ -219,23 +219,26 @@ pub fn create_colored_cell(value: &str, numeric_value: f64) -> Cell {
 }
 
 /// Creates a progress indicator for amortization schedules
-/// 
+///
 /// # Arguments
 /// * `current_payment` - Current payment number
 /// * `total_payments` - Total number of payments
-/// 
+///
 /// # Returns
 /// * A formatted progress string
 pub fn format_progress(current_payment: u32, total_payments: u32) -> String {
     let percentage = (current_payment as f64 / total_payments as f64) * 100.0;
-    format!("{}/{} ({:.1}%)", current_payment, total_payments, percentage)
+    format!(
+        "{}/{} ({:.1}%)",
+        current_payment, total_payments, percentage
+    )
 }
 
 /// Formats years in a human-readable way
-/// 
+///
 /// # Arguments
 /// * `years` - Number of years as a float
-/// 
+///
 /// # Returns
 /// * A human-readable year string
 pub fn format_years(years: f64) -> String {
@@ -249,10 +252,10 @@ pub fn format_years(years: f64) -> String {
 }
 
 /// Formats a decimal rate as a percentage
-/// 
+///
 /// # Arguments
 /// * `rate` - The decimal rate (e.g., 0.05 for 5%)
-/// 
+///
 /// # Returns
 /// * A formatted percentage string
 pub fn format_rate_as_percentage(rate: f64) -> String {
